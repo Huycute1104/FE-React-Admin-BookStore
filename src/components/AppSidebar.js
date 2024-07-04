@@ -1,3 +1,4 @@
+/* eslint-disable prettier/prettier */
 import React from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 
@@ -13,11 +14,12 @@ import CIcon from '@coreui/icons-react'
 
 import { AppSidebarNav } from './AppSidebarNav'
 
-import { logo } from 'src/assets/brand/logo'
-import { sygnet } from 'src/assets/brand/sygnet'
+// Import bookstore logo
+import bookstoreLogo from 'src/assets/images/bookstore.png'
 
 // sidebar nav config
 import navigation from '../_nav'
+import { Style } from '@mui/icons-material'
 
 const AppSidebar = () => {
   const dispatch = useDispatch()
@@ -36,9 +38,9 @@ const AppSidebar = () => {
       }}
     >
       <CSidebarHeader className="border-bottom">
-        <CSidebarBrand to="/">
-          <CIcon customClassName="sidebar-brand-full" icon={logo} height={32} />
-          <CIcon customClassName="sidebar-brand-narrow" icon={sygnet} height={32} />
+        <CSidebarBrand to="/" className="d-flex align-items-center text-decoration-none">
+          <img src={bookstoreLogo} alt="BookStore Logo" height={75} width={75} />
+          <span className="ms-2 fs-5 fw-bold">BookStore</span>
         </CSidebarBrand>
         <CCloseButton
           className="d-lg-none"

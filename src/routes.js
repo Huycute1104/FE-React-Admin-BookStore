@@ -1,8 +1,15 @@
 import React from 'react'
 
 const Dashboard = React.lazy(() => import('./views/dashboard/Dashboard'))
-const Colors = React.lazy(() => import('./views/theme/colors/Colors'))
-const Typography = React.lazy(() => import('./views/theme/typography/Typography'))
+const Category = React.lazy(() => import('./views/theme/category/CategoryList'))
+const EditCategory = React.lazy(() => import('./views/theme/category/EditCategoryPage'))
+const CreateCategoryPage = React.lazy(() => import('./views/theme/category/CreateCategoryPage'))
+const ProductList = React.lazy(() => import('./views/theme/product/ProductList'))
+const EditProduct = React.lazy(() => import('./views/theme/product/EditProductPage'))
+const CreateProductPage = React.lazy(() => import('./views/theme/product/CreateProductPage'))
+const UserList = React.lazy(() => import('./views/theme/users/UserList'))
+const EditUser = React.lazy(() => import('./views/theme/users/EditUserPage'))
+const CreateUser = React.lazy(() => import('./views/theme/users/CreateUserPage'))
 
 // Base
 const Accordion = React.lazy(() => import('./views/base/accordion/Accordion'))
@@ -54,9 +61,15 @@ const Widgets = React.lazy(() => import('./views/widgets/Widgets'))
 const routes = [
   { path: '/', exact: true, name: 'Home' },
   { path: '/dashboard', name: 'Dashboard', element: Dashboard },
-  { path: '/theme', name: 'Theme', element: Colors, exact: true },
-  { path: '/theme/colors', name: 'Colors', element: Colors },
-  { path: '/theme/typography', name: 'Typography', element: Typography },
+  { path: '/theme/category', name: 'Category', element: Category },
+  { path: '/theme/category/edit/:id', name: 'EditCategory', element: EditCategory },
+  { path: '/theme/category/create', name: 'CreateCategory', element: CreateCategoryPage },
+  { path: '/theme/product', name: 'Product', element: ProductList },
+  { path: '/theme/product/edit/:id', name: 'EditProduct', element: EditProduct },
+  { path: '/theme/product/create', name: 'CreateProduct', element: CreateProductPage },
+  { path: '/theme/user', name: 'User', element: UserList },
+  { path: '/theme/user/edit/:id', name: 'EditUser', element: EditUser },
+  { path: '/theme/user/create', name: 'CreateUser', element: CreateUser },
   { path: '/base', name: 'Base', element: Cards, exact: true },
   { path: '/base/accordion', name: 'Accordion', element: Accordion },
   { path: '/base/breadcrumbs', name: 'Breadcrumbs', element: Breadcrumbs },
