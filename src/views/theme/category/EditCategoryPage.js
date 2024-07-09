@@ -1,33 +1,46 @@
 /* eslint-disable prettier/prettier */
-import React from 'react'
-import { Box, Typography, TextField, Button } from '@mui/material'
-import { Formik, Form, Field } from 'formik'
-import * as Yup from 'yup'
-import { useParams, useNavigate } from 'react-router-dom'
+import React from 'react';
+import { Box, Typography, TextField, Button } from '@mui/material';
+import { Formik, Form, Field } from 'formik';
+import * as Yup from 'yup';
+import { useParams, useLocation, useNavigate } from 'react-router-dom';
+import axios from 'axios';
+import { API_HOST } from '../../../api/config';
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 const validationSchema = Yup.object({
   name: Yup.string().required('Name is required'),
-  description: Yup.string().required('Description is required'),
-})
+});
 
 const EditCategoryPage = () => {
-  const { id } = useParams()
-  const navigate = useNavigate()
+  const { id } = useParams();
+  const { state } = useLocation();
+  const navigate = useNavigate();
 
-  const getCategoryById = (categoryId) => {
-    return { id: categoryId, name: 'Category Name', description: 'Category Description' }
-  }
+  const initialName = state ? state.categoryName : '';
 
-  const category = getCategoryById(id)
-
-  const handleSubmit = (values) => {
-    console.log('Form submitted with values:', values)
-    navigate('/theme/category')
-  }
+  const handleSubmit = async (values) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.put(`${API_HOST}/api/categories/${id}`, values, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      console.log('Category updated successfully:', response.data.category);
+      // navigate('/theme/category');
+      toast.success(response.data.message);
+      
+    } catch (error) {
+      console.error('Failed to update category:', error);
+      toast.error('Failed to update category.');
+    }
+  };
 
   const handleBack = () => {
-    navigate('/theme/category')
-  }
+    navigate('/theme/category');
+  };
 
   return (
     <Box>
@@ -39,7 +52,7 @@ const EditCategoryPage = () => {
           Back
         </Button>
       </Box>
-      <Formik initialValues={category} validationSchema={validationSchema} onSubmit={handleSubmit}>
+      <Formik initialValues={{ name: initialName }} validationSchema={validationSchema} onSubmit={handleSubmit}>
         {({ errors, touched }) => (
           <Form>
             <Box marginBottom={2}>
@@ -53,26 +66,15 @@ const EditCategoryPage = () => {
                 sx={{ borderRadius: '20px' }}
               />
             </Box>
-            <Box marginBottom={2}>
-              <Field
-                as={TextField}
-                fullWidth
-                name="description"
-                label="Description"
-                multiline
-                rows={4}
-                error={touched.description && !!errors.description}
-                helperText={touched.description && errors.description}
-              />
-            </Box>
             <Button type="submit" variant="contained" color="primary" sx={{ borderRadius: '20px' }}>
               Save
             </Button>
           </Form>
         )}
       </Formik>
+      <ToastContainer position="top-right" autoClose={3000} />
     </Box>
-  )
-}
+  );
+};
 
-export default EditCategoryPage
+export default EditCategoryPage;

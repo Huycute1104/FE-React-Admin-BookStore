@@ -74,7 +74,7 @@ const CategoryList = () => {
 
   const handleEditClick = (category) => {
     handleMenuClose();
-    navigate(`/theme/category/edit/${category.id}`);
+    navigate(`/theme/category/edit/${category.id}`, { state: { categoryName: category.name } });
   };
 
   const handleDeleteClick = (event, category) => {
