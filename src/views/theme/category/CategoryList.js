@@ -1,8 +1,12 @@
 /* eslint-disable prettier/prettier */
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react';
 import {
   Box,
-  Typography,
+  TextField,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
   TableContainer,
   Table,
   TableHead,
@@ -11,85 +15,107 @@ import {
   TableCell,
   IconButton,
   Menu,
-  MenuItem,
+  Pagination,
+  Button,
   Dialog,
-  DialogActions,
+  DialogTitle,
   DialogContent,
   DialogContentText,
-  DialogTitle,
-  Button,
-  TextField,
-  Select,
-  FormControl,
-  InputLabel,
-} from '@mui/material'
-import MoreVertIcon from '@mui/icons-material/MoreVert'
-import BorderColorIcon from '@mui/icons-material/BorderColor'
-import DeleteIcon from '@mui/icons-material/Delete'
-import AddCircleOutlineOutlinedIcon from '@mui/icons-material/AddCircleOutlineOutlined'
-import { useNavigate } from 'react-router-dom'
-
-const initialCategories = [
-  { id: 1, name: 'Category 1', description: 'Description for Category 1' },
-  { id: 2, name: 'Category 2', description: 'Description for Category 2' },
-]
+  DialogActions,
+} from '@mui/material';
+import MoreVertIcon from '@mui/icons-material/MoreVert';
+import BorderColorIcon from '@mui/icons-material/BorderColor';
+import DeleteIcon from '@mui/icons-material/Delete';
+import AddCircleOutlineOutlinedIcon from '@mui/icons-material/AddCircleOutlineOutlined';
+import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
+import { API_HOST } from '../../../api/config';
 
 const CategoryList = () => {
-  const [categories, setCategories] = useState(initialCategories)
-  const [anchorEl, setAnchorEl] = useState(null)
-  const [selectedCategory, setSelectedCategory] = useState(null)
-  const [openDialog, setOpenDialog] = useState(false)
-  const [searchTerm, setSearchTerm] = useState('')
-  const [filterValue, setFilterValue] = useState('all')
-  const navigate = useNavigate()
+  const [categories, setCategories] = useState([]);
+  const [anchorEl, setAnchorEl] = useState(null);
+  const [selectedCategory, setSelectedCategory] = useState(null);
+  const [openDialog, setOpenDialog] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterValue, setFilterValue] = useState('all');
+  const [pageIndex, setPageIndex] = useState(1);
+  const [pageSize, setPageSize] = useState(5);
+  const [totalPages, setTotalPages] = useState(3);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const response = await axios.get(`${API_HOST}/api/categories`, {
+          params: { pageIndex, pageSize },
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        console.log('API response:', response.data); 
+        setCategories(response.data || []);
+        setTotalPages(response.data.totalPages || 3);
+      } catch (error) {
+        console.error('Failed to fetch categories:', error);
+        setCategories([]);
+      }
+    };
+
+    fetchCategories();
+  }, [pageIndex, pageSize]);
 
   const handleMenuClick = (event, category) => {
-    setAnchorEl(event.currentTarget)
-    setSelectedCategory(category)
-  }
+    setAnchorEl(event.currentTarget);
+    setSelectedCategory(category);
+  };
 
   const handleMenuClose = () => {
-    setAnchorEl(null)
-    setSelectedCategory(null)
-  }
+    setAnchorEl(null);
+    setSelectedCategory(null);
+  };
 
   const handleEditClick = () => {
-    handleMenuClose()
-    navigate(`/theme/category/edit/${selectedCategory.id}`)
-  }
+    handleMenuClose();
+    navigate(`/theme/category/edit/${selectedCategory.id}`);
+  };
 
   const handleDeleteClick = () => {
-    handleMenuClose()
-    setOpenDialog(true)
-  }
+    handleMenuClose();
+    setOpenDialog(true);
+  };
 
   const handleDeleteConfirm = () => {
-    setCategories(categories.filter((category) => category.id !== selectedCategory.id))
-    setOpenDialog(false)
-  }
+    setCategories(categories.filter((cat) => cat.id !== selectedCategory.id));
+    setOpenDialog(false);
+  };
 
   const handleDeleteCancel = () => {
-    setOpenDialog(false)
-  }
+    setOpenDialog(false);
+  };
 
   const handleAddCategory = () => {
-    navigate('/theme/category/create')
-  }
+    navigate('/theme/category/create');
+  };
 
   const handleSearchChange = (event) => {
-    setSearchTerm(event.target.value)
-  }
+    setSearchTerm(event.target.value);
+  };
 
   const handleFilterChange = (event) => {
-    setFilterValue(event.target.value)
-  }
+    setFilterValue(event.target.value);
+  };
 
-  const filteredCategories = categories.filter((category) => {
+  const handlePageChange = (event, value) => {
+    setPageIndex(value);
+  };
+
+  const filteredCategories = categories.filter((cat) => {
     if (filterValue === 'active') {
-      return category.name.toLowerCase().includes(searchTerm.toLowerCase())
+      return cat.name.toLowerCase().includes(searchTerm.toLowerCase());
     }
-    return category.name.toLowerCase().includes(searchTerm.toLowerCase())
-  })
+    return cat.name.toLowerCase().includes(searchTerm.toLowerCase());
+  });
 
   return (
     <Box>
@@ -136,21 +162,21 @@ const CategoryList = () => {
         <Table>
           <TableHead>
             <TableRow>
+              <TableCell>ID</TableCell>
               <TableCell>Name</TableCell>
-              <TableCell>Description</TableCell>
               <TableCell>Action</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
-            {filteredCategories.map((category) => (
-              <TableRow key={category.id}>
-                <TableCell>{category.name}</TableCell>
-                <TableCell>{category.description}</TableCell>
+            {filteredCategories.map((cat) => (
+              <TableRow key={cat.id}>
+                <TableCell>{cat.id}</TableCell>
+                <TableCell>{cat.name}</TableCell>
                 <TableCell>
                   <IconButton
                     aria-controls="simple-menu"
                     aria-haspopup="true"
-                    onClick={(event) => handleMenuClick(event, category)}
+                    onClick={(event) => handleMenuClick(event, cat)}
                   >
                     <MoreVertIcon />
                   </IconButton>
@@ -177,6 +203,10 @@ const CategoryList = () => {
         </Table>
       </TableContainer>
 
+      <Box display="flex" justifyContent="center" marginTop={2}>
+        <Pagination count={totalPages} page={pageIndex} onChange={handlePageChange} color="primary" />
+      </Box>
+
       <Dialog open={openDialog} onClose={handleDeleteCancel}>
         <DialogTitle sx={{ backgroundColor: '#f44336', color: '#fff' }}>
           Delete Category
@@ -194,7 +224,7 @@ const CategoryList = () => {
         </DialogActions>
       </Dialog>
     </Box>
-  )
-}
+  );
+};
 
-export default CategoryList
+export default CategoryList;
