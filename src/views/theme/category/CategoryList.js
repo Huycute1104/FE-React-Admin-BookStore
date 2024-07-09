@@ -3,10 +3,6 @@ import React, { useState, useEffect } from 'react';
 import {
   Box,
   TextField,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
   TableContainer,
   Table,
   TableHead,
@@ -22,6 +18,7 @@ import {
   DialogContent,
   DialogContentText,
   DialogActions,
+  MenuItem,
 } from '@mui/material';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import BorderColorIcon from '@mui/icons-material/BorderColor';
@@ -37,7 +34,6 @@ const CategoryList = () => {
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [openDialog, setOpenDialog] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterValue, setFilterValue] = useState('all');
   const [pageIndex, setPageIndex] = useState(1);
   const [pageSize, setPageSize] = useState(5);
   const [totalPages, setTotalPages] = useState(3);
@@ -102,18 +98,11 @@ const CategoryList = () => {
     setSearchTerm(event.target.value);
   };
 
-  const handleFilterChange = (event) => {
-    setFilterValue(event.target.value);
-  };
-
   const handlePageChange = (event, value) => {
     setPageIndex(value);
   };
 
   const filteredCategories = categories.filter((cat) => {
-    if (filterValue === 'active') {
-      return cat.name.toLowerCase().includes(searchTerm.toLowerCase());
-    }
     return cat.name.toLowerCase().includes(searchTerm.toLowerCase());
   });
 
@@ -135,18 +124,6 @@ const CategoryList = () => {
           />
         </Box>
         <Box display="flex" alignItems="center">
-          <FormControl variant="outlined" sx={{ marginLeft: 2 }}>
-            <InputLabel>Filter</InputLabel>
-            <Select
-              value={filterValue}
-              onChange={handleFilterChange}
-              label="Filter"
-              sx={{ width: 120, borderRadius: '20px' }}
-            >
-              <MenuItem value="all">All</MenuItem>
-              <MenuItem value="active">Active</MenuItem>
-            </Select>
-          </FormControl>
           <Button
             variant="contained"
             color="primary"

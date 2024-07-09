@@ -4,25 +4,46 @@ import { Box, Typography, TextField, Button, Grid } from '@mui/material'
 import { Formik, Form, Field } from 'formik'
 import * as Yup from 'yup'
 import { useNavigate } from 'react-router-dom'
-import { toast } from 'react-toastify' // Import toast from react-toastify
-import 'react-toastify/dist/ReactToastify.css' // Import default react-toastify styles
+import { toast } from 'react-toastify' 
+import 'react-toastify/dist/ReactToastify.css' 
+import axios from 'axios'
+import { API_HOST } from '../../../api/config' 
 
 const validationSchema = Yup.object({
   name: Yup.string().required('Name is required'),
-  description: Yup.string().required('Description is required'),
 })
 
 const CreateCategoryPage = () => {
   const navigate = useNavigate()
 
-  const handleSubmit = (values) => {
-    console.log('Form submitted with values:', values)
-    navigate('/categories')
+  const handleSubmit = async (values) => {
+    try {
+      const token = localStorage.getItem('token') 
+      const response = await axios.post(`${API_HOST}/api/categories`, {
+        name: values.name,
+      }, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+      console.log('API response:', response.data)
+      toast.success('Category created successfully') 
+      navigate('/theme/category')
+    } catch (error) {
+      if (error.response && error.response.data && error.response.data.message) {
+        console.error('API error:', error.response.data.message)
+        toast.error(error.response.data.message) 
+      } else {
+        console.error('Failed to create category:', error)
+        toast.error('Failed to create category') 
+      }
+    }
   }
+  
 
   const handleBack = () => {
     navigate('/theme/category')
-    toast.success('Back to Category List') // Show success toast message
+    // toast.success('Back to Category List') // Show success toast message
   }
 
   return (
@@ -38,7 +59,7 @@ const CreateCategoryPage = () => {
         </Grid>
       </Grid>
       <Formik
-        initialValues={{ name: '', description: '' }}
+        initialValues={{ name: '' }}
         validationSchema={validationSchema}
         onSubmit={handleSubmit}
       >
@@ -52,18 +73,6 @@ const CreateCategoryPage = () => {
                 label="Name"
                 error={touched.name && !!errors.name}
                 helperText={touched.name && errors.name}
-              />
-            </Box>
-            <Box marginBottom={2}>
-              <Field
-                as={TextField}
-                fullWidth
-                name="description"
-                label="Description"
-                multiline
-                rows={4}
-                error={touched.description && !!errors.description}
-                helperText={touched.description && errors.description}
               />
             </Box>
             <Button type="submit" variant="contained" color="primary" sx={{ borderRadius: '12px' }}>
