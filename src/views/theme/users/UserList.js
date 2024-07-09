@@ -1,5 +1,5 @@
 /* eslint-disable prettier/prettier */
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -22,127 +22,119 @@ import {
   FormControl,
   InputLabel,
   Select,
-} from '@mui/material'
-import MoreVertIcon from '@mui/icons-material/MoreVert'
-import BorderColorIcon from '@mui/icons-material/BorderColor'
-import DeleteIcon from '@mui/icons-material/Delete'
-import AddCircleOutlineOutlinedIcon from '@mui/icons-material/AddCircleOutlineOutlined'
-import BlockIcon from '@mui/icons-material/Block'
-import CheckCircleIcon from '@mui/icons-material/CheckCircle'
-import { useNavigate } from 'react-router-dom'
-import { toast } from 'react-toastify'
-
-const initialUsers = [
-  {
-    id: 1,
-    username: 'User 1',
-    email: 'user1@example.com',
-    role: 'Admin',
-    banned: false,
-  },
-  {
-    id: 2,
-    username: 'User 2',
-    email: 'user2@example.com',
-    role: 'User',
-    banned: false,
-  },
-  {
-    id: 3,
-    username: 'User 3',
-    email: 'user3@example.com',
-    role: 'User',
-    banned: false,
-  },
-  {
-    id: 4,
-    username: 'User 4',
-    email: 'user3@example.com',
-    role: 'User',
-    banned: true,
-  },
-]
+} from '@mui/material';
+import MoreVertIcon from '@mui/icons-material/MoreVert';
+import BorderColorIcon from '@mui/icons-material/BorderColor';
+import DeleteIcon from '@mui/icons-material/Delete';
+import AddCircleOutlineOutlinedIcon from '@mui/icons-material/AddCircleOutlineOutlined';
+import BlockIcon from '@mui/icons-material/Block';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import { useNavigate } from 'react-router-dom';
+import { toast, ToastContainer } from 'react-toastify';
+import axios from 'axios';
+import { API_HOST } from '../../../api/config';
 
 const UserList = () => {
-  const [users, setUsers] = useState(initialUsers)
-  const [anchorEl, setAnchorEl] = useState(null)
-  const [selectedUser, setSelectedUser] = useState(null)
-  const [openDialog, setOpenDialog] = useState(false)
-  const [searchTerm, setSearchTerm] = useState('')
-  const [filterValue, setFilterValue] = useState('all')
-  const navigate = useNavigate()
+  const [users, setUsers] = useState([]);
+  const [anchorEl, setAnchorEl] = useState(null);
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [openDialog, setOpenDialog] = useState(false);
+  const [dialogType, setDialogType] = useState(''); // 'delete', 'ban', 'unban'
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterValue, setFilterValue] = useState('all');
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const response = await axios.get(`${API_HOST}/api/users?pageIndex=1&pageSize=5`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        setUsers(response.data);
+      } catch (error) {
+        console.error('Failed to fetch users:', error);
+        toast.error('Failed to fetch users.');
+      }
+    };
+    fetchUsers();
+  }, []);
 
   const handleMenuClick = (event, user) => {
-    setAnchorEl(event.currentTarget)
-    setSelectedUser(user)
-  }
+    setAnchorEl(event.currentTarget);
+    setSelectedUser(user);
+  };
 
   const handleMenuClose = () => {
-    setAnchorEl(null)
-    setSelectedUser(null)
-  }
+    setAnchorEl(null);
+    setSelectedUser(null);
+  };
 
   const handleEditClick = () => {
-    handleMenuClose()
-    navigate(`/theme/user/edit/${selectedUser.id}`)
-  }
+    handleMenuClose();
+    navigate(`/theme/user/edit/${selectedUser.id}`);
+  };
 
   const handleDeleteClick = () => {
-    handleMenuClose()
-    setOpenDialog(true)
-  }
+    handleMenuClose();
+    setDialogType('delete');
+    setOpenDialog(true);
+  };
+
+  const handleBanClick = () => {
+    handleMenuClose();
+    setDialogType(selectedUser.userStatus ? 'ban' : 'unban');
+    setOpenDialog(true);
+  };
 
   const handleDeleteConfirm = () => {
-    setUsers(users.filter((user) => user.id !== selectedUser.id))
-    setOpenDialog(false)
-  }
+    if (dialogType === 'delete') {
+      setUsers(users.filter((user) => user.id !== selectedUser.id));
+      toast.success(`User ${selectedUser.email} has been deleted.`);
+    } else if (dialogType === 'ban') {
+      const updatedUsers = users.map((user) =>
+        user.id === selectedUser.id ? { ...user, userStatus: false } : user,
+      );
+      setUsers(updatedUsers);
+      toast.success(`User ${selectedUser.email} has been banned.`);
+    } else if (dialogType === 'unban') {
+      const updatedUsers = users.map((user) =>
+        user.id === selectedUser.id ? { ...user, userStatus: true } : user,
+      );
+      setUsers(updatedUsers);
+      toast.success(`User ${selectedUser.email} has been unbanned.`);
+    }
+    setOpenDialog(false);
+  };
 
   const handleDeleteCancel = () => {
-    setOpenDialog(false)
-  }
+    setOpenDialog(false);
+  };
 
   const handleAddUser = () => {
-    navigate('/theme/user/create')
-  }
+    navigate('/theme/user/create');
+  };
 
   const handleSearchChange = (event) => {
-    setSearchTerm(event.target.value)
-  }
+    setSearchTerm(event.target.value);
+  };
 
   const handleFilterChange = (event) => {
-    setFilterValue(event.target.value)
-  }
-
-  const handleBanUser = () => {
-    const updatedUsers = users.map((user) =>
-      user.id === selectedUser.id ? { ...user, banned: true } : user,
-    )
-    setUsers(updatedUsers)
-    handleMenuClose()
-    toast.success(`User ${selectedUser.username} has been banned.`)
-  }
-
-  const handleUnbanUser = () => {
-    const updatedUsers = users.map((user) =>
-      user.id === selectedUser.id ? { ...user, banned: false } : user,
-    )
-    setUsers(updatedUsers)
-    handleMenuClose()
-    toast.success(`User ${selectedUser.username} has been unbanned.`)
-  }
+    setFilterValue(event.target.value);
+  };
 
   const filteredUsers = users.filter((user) => {
-    const usernameIncludesSearchTerm = user.username
-      .toLowerCase()
-      .includes(searchTerm.toLowerCase())
+    const emailIncludesSearchTerm = user.email.toLowerCase().includes(searchTerm.toLowerCase());
 
     if (filterValue === 'active') {
-      return !user.banned && usernameIncludesSearchTerm
+      return user.userStatus && emailIncludesSearchTerm;
     } else if (filterValue === 'banned') {
-      return user.banned && usernameIncludesSearchTerm
+      return !user.userStatus && emailIncludesSearchTerm;
     }
-    return usernameIncludesSearchTerm
-  })
+    return emailIncludesSearchTerm;
+  });
 
   return (
     <Box>
@@ -172,38 +164,34 @@ const UserList = () => {
             >
               <MenuItem value="all">All</MenuItem>
               <MenuItem value="active">Active</MenuItem>
-              <MenuItem value="banned">Ban</MenuItem>
+              <MenuItem value="banned">Banned</MenuItem>
             </Select>
           </FormControl>
-          <Button
-            variant="contained"
-            color="primary"
-            startIcon={<AddCircleOutlineOutlinedIcon />}
-            onClick={handleAddUser}
-            sx={{ borderRadius: '20px', padding: '12px 20px', fontSize: '1rem', marginLeft: 2 }}
-          >
-            Add User
-          </Button>
+
         </Box>
       </Box>
       <TableContainer>
         <Table>
           <TableHead>
             <TableRow>
-              <TableCell>Username</TableCell>
+              <TableCell>STT</TableCell>
               <TableCell>Email</TableCell>
+              <TableCell>Phone</TableCell>
+              <TableCell>Address</TableCell>
               <TableCell>Role</TableCell>
               <TableCell>Status</TableCell>
               <TableCell>Action</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
-            {filteredUsers.map((user) => (
+            {filteredUsers.map((user, index) => (
               <TableRow key={user.id}>
-                <TableCell>{user.username}</TableCell>
+                <TableCell>{index + 1}</TableCell>
                 <TableCell>{user.email}</TableCell>
-                <TableCell>{user.role}</TableCell>
-                <TableCell>{user.banned ? 'Banned' : 'Active'}</TableCell>
+                <TableCell>{user.phone}</TableCell>
+                <TableCell>{user.address}</TableCell>
+                <TableCell>{user.role.roleName}</TableCell>
+                <TableCell>{user.userStatus ? 'Active' : 'Banned'}</TableCell>
                 <TableCell>
                   <IconButton
                     aria-controls="simple-menu"
@@ -219,25 +207,21 @@ const UserList = () => {
                     open={Boolean(anchorEl) && selectedUser && selectedUser.id === user.id}
                     onClose={handleMenuClose}
                   >
-                    <MenuItem onClick={handleEditClick}>
-                      <BorderColorIcon fontSize="small" sx={{ marginRight: 1 }} />
-                      Edit
-                    </MenuItem>
-                    <MenuItem onClick={handleDeleteClick}>
-                      <DeleteIcon fontSize="small" sx={{ marginRight: 1 }} />
-                      Delete
-                    </MenuItem>
-                    {user.role === 'User' && user.banned ? (
-                      <MenuItem onClick={handleUnbanUser}>
-                        <CheckCircleIcon fontSize="small" sx={{ marginRight: 1 }} />
-                        Unban
+                    {user.role.roleName === 'Customer' && (
+                      <MenuItem onClick={handleBanClick}>
+                        {user.userStatus ? (
+                          <>
+                            <BlockIcon fontSize="small" sx={{ marginRight: 1 }} />
+                            Ban
+                          </>
+                        ) : (
+                          <>
+                            <CheckCircleIcon fontSize="small" sx={{ marginRight: 1 }} />
+                            Unban
+                          </>
+                        )}
                       </MenuItem>
-                    ) : user.role === 'User' ? (
-                      <MenuItem onClick={handleBanUser}>
-                        <BlockIcon fontSize="small" sx={{ marginRight: 1 }} />
-                        Ban
-                      </MenuItem>
-                    ) : null}
+                    )}
                   </Menu>
                 </TableCell>
               </TableRow>
@@ -247,21 +231,29 @@ const UserList = () => {
       </TableContainer>
 
       <Dialog open={openDialog} onClose={handleDeleteCancel}>
-        <DialogTitle>Delete User</DialogTitle>
+        <DialogTitle>{dialogType === 'delete' ? 'Delete User' : dialogType === 'ban' ? 'Ban User' : 'Unban User'}</DialogTitle>
         <DialogContent>
-          <DialogContentText>Are you sure you want to delete this user?</DialogContentText>
+          <DialogContentText>
+            {dialogType === 'delete'
+              ? 'Are you sure you want to delete this user?'
+              : dialogType === 'ban'
+              ? 'Are you sure you want to ban this user?'
+              : 'Are you sure you want to unban this user?'}
+          </DialogContentText>
         </DialogContent>
         <DialogActions>
           <Button onClick={handleDeleteCancel} color="primary">
             Cancel
           </Button>
-          <Button onClick={handleDeleteConfirm} color="error" autoFocus>
-            Delete
+          <Button onClick={handleDeleteConfirm} color={dialogType === 'delete' ? 'error' : 'primary'} autoFocus>
+            {dialogType === 'delete' ? 'Delete' : dialogType === 'ban' ? 'Ban' : 'Unban'}
           </Button>
         </DialogActions>
       </Dialog>
-    </Box>
-  )
-}
 
-export default UserList
+      <ToastContainer />
+    </Box>
+  );
+};
+
+export default UserList;

@@ -50,7 +50,7 @@ const Login = () => {
       localStorage.setItem('user', JSON.stringify(user))
       // Navigate to the dashboard
       setLoginStatus('success')
-      setLoginMessage('Login successful! Redirecting to dashboard...')
+      setLoginMessage('Login successful!')
       console.log('Login successful!', response.data)
       setTimeout(() => navigate('/dashboard'), 1500)
     } catch (error) {
