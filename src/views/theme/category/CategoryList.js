@@ -27,6 +27,8 @@ import AddCircleOutlineOutlinedIcon from '@mui/icons-material/AddCircleOutlineOu
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { API_HOST } from '../../../api/config';
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 const CategoryList = () => {
   const [categories, setCategories] = useState([]);
@@ -51,7 +53,7 @@ const CategoryList = () => {
         });
         console.log('API response:', response.data); 
         setCategories(response.data || []);
-        setTotalPages(response.data.totalPages || 3);
+        setTotalPages(response.data.totalPages || 5);
       } catch (error) {
         console.error('Failed to fetch categories:', error);
         setCategories([]);
@@ -68,26 +70,47 @@ const CategoryList = () => {
 
   const handleMenuClose = () => {
     setAnchorEl(null);
-    setSelectedCategory(null);
   };
 
-  const handleEditClick = () => {
+  const handleEditClick = (category) => {
     handleMenuClose();
-    navigate(`/theme/category/edit/${selectedCategory.id}`);
+    navigate(`/theme/category/edit/${category.id}`);
   };
 
-  const handleDeleteClick = () => {
+  const handleDeleteClick = (event, category) => {
     handleMenuClose();
+    setSelectedCategory(category);
     setOpenDialog(true);
   };
 
-  const handleDeleteConfirm = () => {
-    setCategories(categories.filter((cat) => cat.id !== selectedCategory.id));
-    setOpenDialog(false);
+  const handleDeleteConfirm = async () => {
+    try {
+      if (!selectedCategory) {
+        console.error('No category selected for deletion.');
+        setOpenDialog(false);
+        return;
+      }
+  
+      const token = localStorage.getItem('token');
+      await axios.delete(`${API_HOST}/api/categories/${selectedCategory.id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      setCategories(categories.filter((cat) => cat.id !== selectedCategory.id));
+      setOpenDialog(false);
+      toast.success('Category deleted successfully.');
+      setSelectedCategory(null); 
+    } catch (error) {
+      console.error('Failed to delete category:', error);
+      setOpenDialog(false);
+      toast.error('Failed to delete category.');
+    }
   };
-
+  
   const handleDeleteCancel = () => {
     setOpenDialog(false);
+    setSelectedCategory(null); 
   };
 
   const handleAddCategory = () => {
@@ -164,11 +187,11 @@ const CategoryList = () => {
                     open={Boolean(anchorEl)}
                     onClose={handleMenuClose}
                   >
-                    <MenuItem onClick={handleEditClick}>
+                    <MenuItem onClick={() => handleEditClick(cat)}>
                       <BorderColorIcon fontSize="small" sx={{ marginRight: 1 }} />
                       Edit
                     </MenuItem>
-                    <MenuItem onClick={handleDeleteClick}>
+                    <MenuItem onClick={(event) => handleDeleteClick(event, cat)}>
                       <DeleteIcon fontSize="small" sx={{ marginRight: 1 }} />
                       Delete
                     </MenuItem>
@@ -200,6 +223,8 @@ const CategoryList = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      <ToastContainer position="top-right" autoClose={3000} />
     </Box>
   );
 };
