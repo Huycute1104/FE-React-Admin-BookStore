@@ -1,5 +1,5 @@
-import React from 'react'
-import { Link } from 'react-router-dom'
+import React, { useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import {
   CButton,
   CCard,
@@ -12,27 +12,80 @@ import {
   CInputGroup,
   CInputGroupText,
   CRow,
+  CAlert,
 } from '@coreui/react'
 import CIcon from '@coreui/icons-react'
 import { cilLockLocked, cilUser } from '@coreui/icons'
+import axios from 'axios'
+import { API_HOST } from '../../../api/config'
 
 const Login = () => {
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [loginStatus, setLoginStatus] = useState('')
+  const [loginMessage, setLoginMessage] = useState('')
+  const navigate = useNavigate()
+
+  const handleLogin = async (e) => {
+    e.preventDefault()
+    try {
+      const response = await axios.post(`${API_HOST}/api/auth/login`, { email, password })
+      const { token, user } = response.data
+
+      if (!user.userStatus) {
+        setLoginStatus('error')
+        setLoginMessage('Account is locked.')
+        console.error('Login failed: Account is locked')
+        return
+      }
+
+      if (user.roleId !== 1) {
+        setLoginStatus('error')
+        setLoginMessage('Your account does not have access permissions.')
+        console.error('Login failed: Insufficient permissions')
+        return
+      }
+
+      localStorage.setItem('token', token)
+      localStorage.setItem('user', JSON.stringify(user))
+      // Navigate to the dashboard
+      setLoginStatus('success')
+      setLoginMessage('Login successful! Redirecting to dashboard...')
+      console.log('Login successful!', response.data)
+      setTimeout(() => navigate('/dashboard'), 1500)
+    } catch (error) {
+      setLoginStatus('error')
+      setLoginMessage('Login failed. Please check your credentials and try again.')
+      console.error('Login failed', error)
+    }
+  }
+
   return (
     <div className="bg-body-tertiary min-vh-100 d-flex flex-row align-items-center">
       <CContainer>
         <CRow className="justify-content-center">
           <CCol md={8}>
+            {loginStatus && (
+              <CAlert color={loginStatus === 'success' ? 'success' : 'danger'}>
+                {loginMessage}
+              </CAlert>
+            )}
             <CCardGroup>
               <CCard className="p-4">
                 <CCardBody>
-                  <CForm>
+                  <CForm onSubmit={handleLogin}>
                     <h1>Login</h1>
                     <p className="text-body-secondary">Sign In to your account</p>
                     <CInputGroup className="mb-3">
                       <CInputGroupText>
                         <CIcon icon={cilUser} />
                       </CInputGroupText>
-                      <CFormInput placeholder="Username" autoComplete="username" />
+                      <CFormInput
+                        placeholder="Email"
+                        autoComplete="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                      />
                     </CInputGroup>
                     <CInputGroup className="mb-4">
                       <CInputGroupText>
@@ -42,11 +95,13 @@ const Login = () => {
                         type="password"
                         placeholder="Password"
                         autoComplete="current-password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
                       />
                     </CInputGroup>
                     <CRow>
                       <CCol xs={6}>
-                        <CButton color="primary" className="px-4">
+                        <CButton type="submit" color="primary" className="px-4">
                           Login
                         </CButton>
                       </CCol>
