@@ -10,6 +10,7 @@ const CreateProductPage = React.lazy(() => import('./views/theme/product/CreateP
 const UserList = React.lazy(() => import('./views/theme/users/UserList'))
 const EditUser = React.lazy(() => import('./views/theme/users/EditUserPage'))
 const CreateUser = React.lazy(() => import('./views/theme/users/CreateUserPage'))
+const Login = React.lazy(() => import('./views/pages/login/Login'))
 
 // Base
 const Accordion = React.lazy(() => import('./views/base/accordion/Accordion'))
