@@ -38,7 +38,7 @@ const CategoryList = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [pageIndex, setPageIndex] = useState(1);
   const [pageSize, setPageSize] = useState(5);
-  const [totalPages, setTotalPages] = useState(3);
+  const [totalPages, setTotalPages] = useState(1); // Default to 1
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -52,8 +52,8 @@ const CategoryList = () => {
           },
         });
         console.log('API response:', response.data); 
-        setCategories(response.data || []);
-        setTotalPages(response.data.totalPages || 5);
+        setCategories(response.data.categories || []);
+        setTotalPages(response.data.totalPages || 1); // Default to 1
       } catch (error) {
         console.error('Failed to fetch categories:', error);
         setCategories([]);
