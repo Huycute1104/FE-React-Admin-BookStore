@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react'
 import {
   Box,
   Typography,
@@ -21,99 +21,123 @@ import {
   FormControl,
   InputLabel,
   Select,
-} from '@mui/material';
-import MoreVertIcon from '@mui/icons-material/MoreVert';
-import BorderColorIcon from '@mui/icons-material/BorderColor';
-import DeleteIcon from '@mui/icons-material/Delete';
-import AddCircleOutlineOutlinedIcon from '@mui/icons-material/AddCircleOutlineOutlined';
-import { useNavigate } from 'react-router-dom'; // Import useNavigate hook for navigation
-import axios from 'axios'; // Import Axios for making HTTP requests
-import { Link } from 'react-router-dom';
+} from '@mui/material'
+import MoreVertIcon from '@mui/icons-material/MoreVert'
+import BorderColorIcon from '@mui/icons-material/BorderColor'
+import DeleteIcon from '@mui/icons-material/Delete'
+import AddCircleOutlineOutlinedIcon from '@mui/icons-material/AddCircleOutlineOutlined'
+import { useNavigate } from 'react-router-dom'
+
+const initialProducts = [
+  {
+    id: 1,
+    productName: 'Product 1',
+    category: 'Category 1',
+    brand: 'Brand 1',
+    description: 'Description for Product 1',
+    price: 100,
+  },
+  {
+    id: 2,
+    productName: 'Product 2',
+    category: 'Category 2',
+    brand: 'Brand 2',
+    description: 'Description for Product 2',
+    price: 200,
+  },
+  {
+    id: 3,
+    productName: 'Product 3',
+    category: 'Category 3',
+    brand: 'Brand 3',
+    description: 'Description for Product 3',
+    price: 300,
+  },
+]
 
 const ProductList = () => {
-  const [books, setBooks] = useState([]);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [limit, setLimit] = useState(20);
-  const [openDialog, setOpenDialog] = useState(false);
-  const [selectedBookId, setSelectedBookId] = useState(null);
-  const navigate = useNavigate(); // Initialize useNavigate hook
+  const [products, setProducts] = useState(initialProducts)
+  const [anchorEl, setAnchorEl] = useState(null)
+  const [selectedProduct, setSelectedProduct] = useState(null)
+  const [openDialog, setOpenDialog] = useState(false)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [filterValue, setFilterValue] = useState('all')
+  const [sortOrder, setSortOrder] = useState('none')
+  const navigate = useNavigate()
 
-  useEffect(() => {
-    fetchBooks();
-  }, [currentPage, limit]);
+  const formatPrice = (price) => {
+    return price.toLocaleString('vi-VN', {
+      style: 'currency',
+      currency: 'VND',
+    })
+  }
 
-  const fetchBooks = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      console.log('Fetching books with token:', token);
+  const handleMenuClick = (event, product) => {
+    setAnchorEl(event.currentTarget)
+    setSelectedProduct(product)
+  }
 
-      const response = await axios.get('https://localhost:7050/api/books', {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        params: {
-          pageIndex: currentPage,
-          pageSize: limit,
-          //bookName: searchTerm,
-        },
-      });
+  const handleMenuClose = () => {
+    setAnchorEl(null)
+    setSelectedProduct(null)
+  }
 
-      console.log('Response:', response);
-      setBooks(response.data);
-    } catch (error) {
-      console.error('Error fetching books:', error);
+  const handleEditClick = () => {
+    handleMenuClose()
+    navigate(`/theme/product/edit/${selectedProduct.id}`)
+  }
 
-      if (error.response) {
-        // Server responded with a status code out of the range of 2xx
-        console.error('Response data:', error.response.data);
-        console.error('Response status:', error.response.status);
-        console.error('Response headers:', error.response.headers);
-      } else if (error.request) {
-        // Request was made but no response received
-        console.error('Request data:', error.request);
-      } else {
-        // Something else happened while setting up the request
-        console.error('Error message:', error.message);
-      }
-    }
-  };
+  const handleDeleteClick = () => {
+    handleMenuClose()
+    setOpenDialog(true)
+  }
 
-  const handleSearchChange = (e) => {
-    setSearchTerm(e.target.value);
-  };
-
-  const handleDeleteClick = (bookId) => {
-    setSelectedBookId(bookId);
-    setOpenDialog(true);
-  };
+  const handleDeleteConfirm = () => {
+    setProducts(products.filter((product) => product.id !== selectedProduct.id))
+    setOpenDialog(false)
+  }
 
   const handleDeleteCancel = () => {
-    setOpenDialog(false);
-    setSelectedBookId(null);
-  };
+    setOpenDialog(false)
+  }
 
-  const handleDeleteConfirm = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await axios.delete(`https://localhost:7050/api/books/${selectedBookId}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+  const handleAddProduct = () => {
+    navigate('/theme/product/create')
+  }
 
-      console.log('Delete response:', response);
+  const handleSearchChange = (event) => {
+    setSearchTerm(event.target.value)
+  }
 
-      // Update books list after deletion
-      fetchBooks();
+  const handleSortChange = (event) => {
+    const newSortOrder = event.target.value
+    setSortOrder(newSortOrder)
+    sortProductsByPrice(newSortOrder)
+  }
 
-      setOpenDialog(false);
-      setSelectedBookId(null);
-    } catch (error) {
-      console.error('Error deleting book:', error);
-      // Handle error
+  const sortProductsByPrice = (order) => {
+    let sortedProducts = [...products]
+    if (order === 'lowToHigh') {
+      sortedProducts.sort((a, b) => a.price - b.price)
+    } else if (order === 'highToLow') {
+      sortedProducts.sort((a, b) => b.price - a.price)
     }
-  };
+    setProducts(sortedProducts)
+  }
+
+  const filteredProducts = products.filter((product) => {
+    if (filterValue === 'active') {
+      return product.productName.toLowerCase().includes(searchTerm.toLowerCase())
+    }
+    return product.productName.toLowerCase().includes(searchTerm.toLowerCase())
+  })
+
+  let sortedProducts = [...filteredProducts]
+  if (sortOrder === 'lowToHigh') {
+    sortedProducts.sort((a, b) => a.price - b.price)
+  } else if (sortOrder === 'highToLow') {
+    sortedProducts.sort((a, b) => b.price - a.price)
+  }
 
   return (
     <Box>
@@ -133,15 +157,27 @@ const ProductList = () => {
           />
         </Box>
         <Box display="flex" alignItems="center">
+          <FormControl variant="outlined" sx={{ marginLeft: 2 }}>
+            <InputLabel>Filter</InputLabel>
+            <Select
+              value={sortOrder}
+              onChange={handleSortChange}
+              label="Sort"
+              sx={{ width: 120, borderRadius: '20px' }}
+            >
+              <MenuItem value="none">None</MenuItem>
+              <MenuItem value="lowToHigh">Low to High</MenuItem>
+              <MenuItem value="highToLow">High to Low</MenuItem>
+            </Select>
+          </FormControl>
           <Button
             variant="contained"
             color="primary"
             startIcon={<AddCircleOutlineOutlinedIcon />}
-            component={Link}
-            to="/theme/create-product"
+            onClick={handleAddProduct}
             sx={{ borderRadius: '20px', padding: '12px 24px', fontSize: '1rem', marginLeft: 3 }}
           >
-            Add Book
+            Add Product
           </Button>
         </Box>
       </Box>
@@ -149,43 +185,46 @@ const ProductList = () => {
         <Table>
           <TableHead>
             <TableRow>
-              <TableCell>Book Name</TableCell>
-              <TableCell>Description</TableCell>
-              <TableCell>Unit Price</TableCell>
-              <TableCell>Units In Stock</TableCell>
-              <TableCell>Discount</TableCell>
-              <TableCell>Category</TableCell>
-              <TableCell>Images</TableCell>
-              <TableCell>Action</TableCell>
+              <TableCell>PRODUCT NAME</TableCell>
+              <TableCell>CATEGORY</TableCell>
+              <TableCell>BRAND</TableCell>
+              <TableCell>DESCRIPTION</TableCell>
+              <TableCell>PRICE</TableCell>
+              <TableCell>ACTION</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
-            {books.map((book) => (
-              <TableRow key={book.id}>
-                <TableCell>{book.name}</TableCell>
-                <TableCell>{book.description}</TableCell>
-                <TableCell>{book.unitPrice}</TableCell>
-                <TableCell>{book.unitsInStock}</TableCell>
-                <TableCell>{book.discount}</TableCell>
-                <TableCell>{book.category.categoryName}</TableCell>
+            {sortedProducts.map((product) => (
+              <TableRow key={product.id}>
+                <TableCell>{product.productName}</TableCell>
+                <TableCell>{product.category}</TableCell>
+                <TableCell>{product.brand}</TableCell>
+                <TableCell>{product.description}</TableCell>
+                <TableCell>{formatPrice(product.price)}</TableCell>
                 <TableCell>
-                  {book.images.map((image, index) => (
-                    <img
-                      key={index}
-                      src={image.url}
-                      alt={image.altText}
-                      style={{ width: '50px', height: '50px' }}
-                    />
-                  ))}
-                </TableCell>
-                <TableCell>
-                  <Button
-                    variant="contained"
-                    color="secondary"
-                    onClick={() => handleDeleteClick(book.id)}
+                  <IconButton
+                    aria-controls="simple-menu"
+                    aria-haspopup="true"
+                    onClick={(event) => handleMenuClick(event, product)}
                   >
-                    Delete
-                  </Button>
+                    <MoreVertIcon />
+                  </IconButton>
+                  <Menu
+                    id="simple-menu"
+                    anchorEl={anchorEl}
+                    keepMounted
+                    open={Boolean(anchorEl)}
+                    onClose={handleMenuClose}
+                  >
+                    <MenuItem onClick={handleEditClick}>
+                      <BorderColorIcon fontSize="small" sx={{ marginRight: 1 }} />
+                      Edit
+                    </MenuItem>
+                    <MenuItem onClick={handleDeleteClick}>
+                      <DeleteIcon fontSize="small" sx={{ marginRight: 1 }} />
+                      Delete
+                    </MenuItem>
+                  </Menu>
                 </TableCell>
               </TableRow>
             ))}
@@ -194,9 +233,9 @@ const ProductList = () => {
       </TableContainer>
 
       <Dialog open={openDialog} onClose={handleDeleteCancel}>
-        <DialogTitle>Delete Book</DialogTitle>
+        <DialogTitle>Delete Product</DialogTitle>
         <DialogContent>
-          <DialogContentText>Are you sure you want to delete this book?</DialogContentText>
+          <DialogContentText>Are you sure you want to delete this product?</DialogContentText>
         </DialogContent>
         <DialogActions>
           <Button onClick={handleDeleteCancel} color="primary">
@@ -208,7 +247,7 @@ const ProductList = () => {
         </DialogActions>
       </Dialog>
     </Box>
-  );
-};
+  )
+}
 
-export default ProductList;
+export default ProductList

@@ -24,9 +24,6 @@ import {
   Select,
 } from '@mui/material';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
-import BorderColorIcon from '@mui/icons-material/BorderColor';
-import DeleteIcon from '@mui/icons-material/Delete';
-import AddCircleOutlineOutlinedIcon from '@mui/icons-material/AddCircleOutlineOutlined';
 import BlockIcon from '@mui/icons-material/Block';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import { useNavigate } from 'react-router-dom';
@@ -39,7 +36,7 @@ const UserList = () => {
   const [anchorEl, setAnchorEl] = useState(null);
   const [selectedUser, setSelectedUser] = useState(null);
   const [openDialog, setOpenDialog] = useState(false);
-  const [dialogType, setDialogType] = useState(''); // 'delete', 'ban', 'unban'
+  const [dialogType, setDialogType] = useState(''); // 'ban', 'unban'
   const [searchTerm, setSearchTerm] = useState('');
   const [filterValue, setFilterValue] = useState('all');
   const navigate = useNavigate();
@@ -72,44 +69,45 @@ const UserList = () => {
     setSelectedUser(null);
   };
 
-  const handleEditClick = () => {
-    handleMenuClose();
-    navigate(`/theme/user/edit/${selectedUser.id}`);
-  };
-
-  const handleDeleteClick = () => {
-    handleMenuClose();
-    setDialogType('delete');
+  const handleBanClick = (user) => {
+    setSelectedUser(user);
+    setDialogType(user.userStatus ? 'ban' : 'unban');
     setOpenDialog(true);
   };
 
-  const handleBanClick = () => {
-    handleMenuClose();
-    setDialogType(selectedUser.userStatus ? 'ban' : 'unban');
-    setOpenDialog(true);
-  };
-
-  const handleDeleteConfirm = () => {
-    if (dialogType === 'delete') {
-      setUsers(users.filter((user) => user.id !== selectedUser.id));
-      toast.success(`User ${selectedUser.email} has been deleted.`);
-    } else if (dialogType === 'ban') {
-      const updatedUsers = users.map((user) =>
-        user.id === selectedUser.id ? { ...user, userStatus: false } : user,
-      );
-      setUsers(updatedUsers);
-      toast.success(`User ${selectedUser.email} has been banned.`);
-    } else if (dialogType === 'unban') {
-      const updatedUsers = users.map((user) =>
-        user.id === selectedUser.id ? { ...user, userStatus: true } : user,
-      );
-      setUsers(updatedUsers);
-      toast.success(`User ${selectedUser.email} has been unbanned.`);
+  const handleConfirmAction = async () => {
+    if (!selectedUser) {
+      toast.error('No user selected.');
+      return;
     }
+
+    const token = localStorage.getItem('token');
+    const config = {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    };
+
+    try {
+      await axios.put(`${API_HOST}/api/users/toggle/${selectedUser.id}`, null, config);
+      const updatedUsers = users.map((user) =>
+        user.id === selectedUser.id ? { ...user, userStatus: dialogType === 'ban' ? false : true } : user,
+      );
+      setUsers(updatedUsers);
+      toast.success(
+        dialogType === 'ban'
+          ? `User ${selectedUser.email} has been banned.`
+          : `User ${selectedUser.email} has been unbanned.`
+      );
+    } catch (error) {
+      console.error(`Failed to ${dialogType} user:`, error);
+      toast.error(`Failed to ${dialogType} user.`);
+    }
+
     setOpenDialog(false);
   };
 
-  const handleDeleteCancel = () => {
+  const handleCancelAction = () => {
     setOpenDialog(false);
   };
 
@@ -208,7 +206,7 @@ const UserList = () => {
                     onClose={handleMenuClose}
                   >
                     {user.role.roleName === 'Customer' && (
-                      <MenuItem onClick={handleBanClick}>
+                      <MenuItem onClick={() => handleBanClick(user)}>
                         {user.userStatus ? (
                           <>
                             <BlockIcon fontSize="small" sx={{ marginRight: 1 }} />
@@ -230,23 +228,21 @@ const UserList = () => {
         </Table>
       </TableContainer>
 
-      <Dialog open={openDialog} onClose={handleDeleteCancel}>
-        <DialogTitle>{dialogType === 'delete' ? 'Delete User' : dialogType === 'ban' ? 'Ban User' : 'Unban User'}</DialogTitle>
+      <Dialog open={openDialog} onClose={handleCancelAction}>
+        <DialogTitle>{dialogType === 'ban' ? 'Ban User' : 'Unban User'}</DialogTitle>
         <DialogContent>
           <DialogContentText>
-            {dialogType === 'delete'
-              ? 'Are you sure you want to delete this user?'
-              : dialogType === 'ban'
+            {dialogType === 'ban'
               ? 'Are you sure you want to ban this user?'
               : 'Are you sure you want to unban this user?'}
           </DialogContentText>
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleDeleteCancel} color="primary">
+          <Button onClick={handleCancelAction} color="primary">
             Cancel
           </Button>
-          <Button onClick={handleDeleteConfirm} color={dialogType === 'delete' ? 'error' : 'primary'} autoFocus>
-            {dialogType === 'delete' ? 'Delete' : dialogType === 'ban' ? 'Ban' : 'Unban'}
+          <Button onClick={handleConfirmAction} color="primary" autoFocus>
+            {dialogType === 'ban' ? 'Ban' : 'Unban'}
           </Button>
         </DialogActions>
       </Dialog>
