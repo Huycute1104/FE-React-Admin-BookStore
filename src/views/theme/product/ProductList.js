@@ -1,7 +1,8 @@
-import React, { useState } from 'react'
+/* eslint-disable prettier/prettier */
+import React, { useState, useEffect } from 'react';
 import {
   Box,
-  Typography,
+  TextField,
   TableContainer,
   Table,
   TableHead,
@@ -10,134 +11,121 @@ import {
   TableCell,
   IconButton,
   Menu,
-  MenuItem,
+  Pagination,
   Dialog,
-  DialogActions,
+  DialogTitle,
   DialogContent,
   DialogContentText,
-  DialogTitle,
+  DialogActions,
   Button,
-  TextField,
-  FormControl,
-  InputLabel,
-  Select,
-} from '@mui/material'
-import MoreVertIcon from '@mui/icons-material/MoreVert'
-import BorderColorIcon from '@mui/icons-material/BorderColor'
-import DeleteIcon from '@mui/icons-material/Delete'
-import AddCircleOutlineOutlinedIcon from '@mui/icons-material/AddCircleOutlineOutlined'
-import { useNavigate } from 'react-router-dom'
-
-const initialProducts = [
-  {
-    id: 1,
-    productName: 'Product 1',
-    category: 'Category 1',
-    brand: 'Brand 1',
-    description: 'Description for Product 1',
-    price: 100,
-  },
-  {
-    id: 2,
-    productName: 'Product 2',
-    category: 'Category 2',
-    brand: 'Brand 2',
-    description: 'Description for Product 2',
-    price: 200,
-  },
-  {
-    id: 3,
-    productName: 'Product 3',
-    category: 'Category 3',
-    brand: 'Brand 3',
-    description: 'Description for Product 3',
-    price: 300,
-  },
-]
+  MenuItem,
+} from '@mui/material';
+import MoreVertIcon from '@mui/icons-material/MoreVert';
+import BorderColorIcon from '@mui/icons-material/BorderColor';
+import DeleteIcon from '@mui/icons-material/Delete';
+import AddCircleOutlineOutlinedIcon from '@mui/icons-material/AddCircleOutlineOutlined';
+import axios from 'axios';
+import { toast, ToastContainer } from 'react-toastify';
+import { API_HOST } from '../../../api/config';
+import { useNavigate } from 'react-router-dom';
 
 const ProductList = () => {
-  const [products, setProducts] = useState(initialProducts)
-  const [anchorEl, setAnchorEl] = useState(null)
-  const [selectedProduct, setSelectedProduct] = useState(null)
-  const [openDialog, setOpenDialog] = useState(false)
-  const [searchTerm, setSearchTerm] = useState('')
-  const [filterValue, setFilterValue] = useState('all')
-  const [sortOrder, setSortOrder] = useState('none')
-  const navigate = useNavigate()
+  const [products, setProducts] = useState([]);
+  const [anchorEl, setAnchorEl] = useState(null);
+  const [selectedProduct, setSelectedProduct] = useState(null);
+  const [openDialog, setOpenDialog] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [pageIndex, setPageIndex] = useState(1);
+  const [pageSize] = useState(5);
+  const [totalPages, setTotalPages] = useState(1);
+  const navigate = useNavigate();
 
-  const formatPrice = (price) => {
-    return price.toLocaleString('vi-VN', {
-      style: 'currency',
-      currency: 'VND',
-    })
-  }
+  const fetchProducts = async (page) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get(`${API_HOST}/api/books?pageIndex=${page}&pageSize=${pageSize}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      console.log('Book response:', response.data); 
+      setProducts(response.data.data);
+      setTotalPages(response.data.totalPages);
+    } catch (error) {
+      console.error('Failed to fetch products:', error);
+      toast.error('Failed to fetch products.');
+    }
+  };
+
+  useEffect(() => {
+    fetchProducts(pageIndex);
+  }, [pageIndex]);
 
   const handleMenuClick = (event, product) => {
-    setAnchorEl(event.currentTarget)
-    setSelectedProduct(product)
-  }
+    setAnchorEl(event.currentTarget);
+    setSelectedProduct(product);
+  };
 
   const handleMenuClose = () => {
-    setAnchorEl(null)
-    setSelectedProduct(null)
-  }
+    setAnchorEl(null);
+  };
 
-  const handleEditClick = () => {
-    handleMenuClose()
-    navigate(`/theme/product/edit/${selectedProduct.id}`)
-  }
+  const handleEditClick = (product) => {
+    handleMenuClose();
+    console.log('Selected product ID:', selectedProduct.id);
+    navigate(`/theme/product/edit/${selectedProduct.id}`, { state: { idbook: selectedProduct.id } });
+  };
 
   const handleDeleteClick = () => {
-    handleMenuClose()
-    setOpenDialog(true)
-  }
-
-  const handleDeleteConfirm = () => {
-    setProducts(products.filter((product) => product.id !== selectedProduct.id))
-    setOpenDialog(false)
-  }
-
-  const handleDeleteCancel = () => {
-    setOpenDialog(false)
-  }
+    handleMenuClose();
+    setOpenDialog(true);
+  };
 
   const handleAddProduct = () => {
-    navigate('/theme/product/create')
-  }
+    navigate('/theme/product/create');
+  };
+
+  const handleDeleteConfirm = async () => {
+    try {
+      if (!selectedProduct) {
+        console.error('No product selected for deletion.');
+        setOpenDialog(false);
+        return;
+      }
+
+      const token = localStorage.getItem('token');
+      await axios.delete(`${API_HOST}/api/books/${selectedProduct.id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      setProducts(products.filter((product) => product.id !== selectedProduct.id));
+      setOpenDialog(false);
+      toast.success('Product deleted successfully.');
+      setSelectedProduct(null);
+    } catch (error) {
+      console.error('Failed to delete product:', error);
+      setOpenDialog(false);
+      toast.error('Failed to delete product.');
+    }
+  };
+
+  const handleDeleteCancel = () => {
+    setOpenDialog(false);
+    setSelectedProduct(null);
+  };
 
   const handleSearchChange = (event) => {
-    setSearchTerm(event.target.value)
-  }
+    setSearchTerm(event.target.value);
+  };
 
-  const handleSortChange = (event) => {
-    const newSortOrder = event.target.value
-    setSortOrder(newSortOrder)
-    sortProductsByPrice(newSortOrder)
-  }
+  const handlePageChange = (event, value) => {
+    setPageIndex(value);
+  };
 
-  const sortProductsByPrice = (order) => {
-    let sortedProducts = [...products]
-    if (order === 'lowToHigh') {
-      sortedProducts.sort((a, b) => a.price - b.price)
-    } else if (order === 'highToLow') {
-      sortedProducts.sort((a, b) => b.price - a.price)
-    }
-    setProducts(sortedProducts)
-  }
-
-  const filteredProducts = products.filter((product) => {
-    if (filterValue === 'active') {
-      return product.productName.toLowerCase().includes(searchTerm.toLowerCase())
-    }
-    return product.productName.toLowerCase().includes(searchTerm.toLowerCase())
-  })
-
-  let sortedProducts = [...filteredProducts]
-  if (sortOrder === 'lowToHigh') {
-    sortedProducts.sort((a, b) => a.price - b.price)
-  } else if (sortOrder === 'highToLow') {
-    sortedProducts.sort((a, b) => b.price - a.price)
-  }
+  const filteredProducts = products.filter((product) =>
+    product.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
     <Box>
@@ -157,19 +145,6 @@ const ProductList = () => {
           />
         </Box>
         <Box display="flex" alignItems="center">
-          <FormControl variant="outlined" sx={{ marginLeft: 2 }}>
-            <InputLabel>Filter</InputLabel>
-            <Select
-              value={sortOrder}
-              onChange={handleSortChange}
-              label="Sort"
-              sx={{ width: 120, borderRadius: '20px' }}
-            >
-              <MenuItem value="none">None</MenuItem>
-              <MenuItem value="lowToHigh">Low to High</MenuItem>
-              <MenuItem value="highToLow">High to Low</MenuItem>
-            </Select>
-          </FormControl>
           <Button
             variant="contained"
             color="primary"
@@ -185,22 +160,32 @@ const ProductList = () => {
         <Table>
           <TableHead>
             <TableRow>
-              <TableCell>PRODUCT NAME</TableCell>
-              <TableCell>CATEGORY</TableCell>
-              <TableCell>BRAND</TableCell>
-              <TableCell>DESCRIPTION</TableCell>
-              <TableCell>PRICE</TableCell>
-              <TableCell>ACTION</TableCell>
+              <TableCell>ID</TableCell>
+              <TableCell>Name</TableCell>
+              <TableCell>Images</TableCell>
+              <TableCell>Author</TableCell>
+              <TableCell>Price</TableCell>
+              <TableCell>UnitsInStock</TableCell>
+              <TableCell>Discount</TableCell>
+              <TableCell>Category</TableCell>
+              <TableCell>Action</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
-            {sortedProducts.map((product) => (
+            {filteredProducts.map((product, index) => (
               <TableRow key={product.id}>
-                <TableCell>{product.productName}</TableCell>
-                <TableCell>{product.category}</TableCell>
-                <TableCell>{product.brand}</TableCell>
+                <TableCell>{product.id}</TableCell>
+                <TableCell>{product.name}</TableCell>
+                <TableCell>
+                  {product.images && product.images.length > 0 && (
+                    <img src={product.images[0].url} alt={product.name} width="50" />
+                  )}
+                </TableCell>
                 <TableCell>{product.description}</TableCell>
-                <TableCell>{formatPrice(product.price)}</TableCell>
+                <TableCell>{product.unitPrice}</TableCell>
+                <TableCell>{product.unitsInStock}</TableCell>
+                <TableCell>{product.discount}</TableCell>
+                <TableCell>{product.category.categoryName}</TableCell>
                 <TableCell>
                   <IconButton
                     aria-controls="simple-menu"
@@ -216,7 +201,7 @@ const ProductList = () => {
                     open={Boolean(anchorEl)}
                     onClose={handleMenuClose}
                   >
-                    <MenuItem onClick={handleEditClick}>
+                    <MenuItem onClick={() => handleEditClick(product)}>
                       <BorderColorIcon fontSize="small" sx={{ marginRight: 1 }} />
                       Edit
                     </MenuItem>
@@ -231,9 +216,13 @@ const ProductList = () => {
           </TableBody>
         </Table>
       </TableContainer>
-
+      <Box display="flex" justifyContent="center" marginTop={2}>
+        <Pagination count={totalPages} page={pageIndex} onChange={handlePageChange} color="primary" />
+      </Box>
       <Dialog open={openDialog} onClose={handleDeleteCancel}>
-        <DialogTitle>Delete Product</DialogTitle>
+        <DialogTitle sx={{ backgroundColor: '#f44336', color: '#fff' }}>
+          Delete Product
+        </DialogTitle>
         <DialogContent>
           <DialogContentText>Are you sure you want to delete this product?</DialogContentText>
         </DialogContent>
@@ -246,8 +235,9 @@ const ProductList = () => {
           </Button>
         </DialogActions>
       </Dialog>
+      <ToastContainer position="top-right" autoClose={3000} />
     </Box>
-  )
-}
+  );
+};
 
-export default ProductList
+export default ProductList;

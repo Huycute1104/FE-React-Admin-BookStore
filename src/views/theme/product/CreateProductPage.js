@@ -1,3 +1,4 @@
+/* eslint-disable prettier/prettier */
 import React, { useState } from 'react';
 import { Box, Typography, TextField, Button, Grid, Card, CardMedia } from '@mui/material';
 import { Formik, Form, Field } from 'formik';
@@ -50,34 +51,33 @@ const CreateProductPage = () => {
     try {
       const token = localStorage.getItem('token');
       const formData = new FormData();
-  
-      formData.append('name', values.name);
-      formData.append('description', values.description);
-      formData.append('unitPrice', values.unitPrice);
-      formData.append('unitsInStock', values.unitsInStock);
-      formData.append('discount', values.discount);
-      formData.append('categoryId', values.categoryId);
-  
+
+      formData.append('Name', values.name);
+      formData.append('Description', values.description);
+      formData.append('UnitPrice', values.unitPrice);
+      formData.append('UnitsInStock', values.unitsInStock);
+      formData.append('Discount', values.discount);
+      formData.append('CategoryId', values.categoryId);
+
       selectedImages.forEach((image, index) => {
-        formData.append(`images[${index}]`, image);
+        formData.append('Images', image);
       });
-  
-      const response = await axios.post('https://localhost:7050/api/books', formData, {
+
+      const response = await axios.post(`${API_HOST}/api/books`, formData, {
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'multipart/form-data',
         },
       });
-  
+
       console.log('Product created:', response.data);
       navigate('/theme/product');
       toast.success('Product created successfully!');
     } catch (error) {
-      console.error('Error creating product:', error.response.data);
+      console.error('Error creating product:', error.response?.data);
       toast.error('Failed to create product. Please try again.');
     }
   };
-  
 
   const handleBack = () => {
     navigate('/theme/product');

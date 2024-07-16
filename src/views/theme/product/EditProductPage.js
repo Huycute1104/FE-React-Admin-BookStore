@@ -1,5 +1,5 @@
 /* eslint-disable prettier/prettier */
-import React from 'react'
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -9,11 +9,13 @@ import {
   InputLabel,
   Select,
   MenuItem,
-} from '@mui/material'
-import { Formik, Form, Field } from 'formik'
-import * as Yup from 'yup'
-import { useParams, useNavigate } from 'react-router-dom'
-import { toast } from 'react-toastify'
+} from '@mui/material';
+import { Formik, Form, Field } from 'formik';
+import * as Yup from 'yup';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import axios from 'axios';
+import { toast } from 'react-toastify';
+import { API_HOST } from '../../../api/config';
 
 const validationSchema = Yup.object({
   productName: Yup.string().required('Product Name is required'),
@@ -23,31 +25,104 @@ const validationSchema = Yup.object({
     .moreThan(0, 'Price must be greater than 0')
     .required('Price is required')
     .typeError('Price must be a number'),
-})
+  discount: Yup.number()
+    .moreThan(0, 'Discount must be greater than 0')
+    .required('Discount is required')
+    .typeError('Discount must be a number'),
+});
 
 const EditProductPage = () => {
-  const { id } = useParams()
-  const navigate = useNavigate()
+  const { id } = useParams(); // Ensure this is correctly getting the product ID from the URL
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [categories, setCategories] = useState([]);
+  const [product, setProduct] = useState(null);
+  const idbook = location.state?.idbook || id; // Get idbook from state or fallback to id
 
-  const getProductById = (productId) => {
-    return {
-      id: productId,
-      productName: 'Product Name',
-      category: 'Category 1',
-      description: 'Product Description',
-      price: 100,
+  const fetchCategories = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get(`${API_HOST}/api/categories`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      console.log('Categories response:', response.data); // Log the response for debugging
+
+      // Ensure the response contains a categories array
+      if (response.data && Array.isArray(response.data.categories)) {
+        setCategories(response.data.categories);
+      } else {
+        throw new Error('Categories response does not contain an array');
+      }
+    } catch (error) {
+      console.error('Failed to fetch categories:', error);
+      if (error.response && error.response.status === 401) {
+        toast.error('Unauthorized. Please log in again.');
+      } else {
+        toast.error('Failed to fetch categories.');
+      }
     }
-  }
+  };
 
-  const product = getProductById(id)
+  const fetchProduct = async (productId) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get(`${API_HOST}/api/books/${productId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      const productData = response.data;
+      console.log('Product data:', productData); // Log the product data for debugging
+      // Set initial values for Formik
+      setProduct({
+        productName: productData.name,
+        description: productData.description,
+        category: productData.category.categoryId,
+        price: productData.unitPrice,
+        discount: productData.discount,
+      });
+    } catch (error) {
+      console.error('Failed to fetch product:', error);
+      if (error.response && error.response.status === 401) {
+        toast.error('Unauthorized. Please log in again.');
+      } else {
+        toast.error('Failed to fetch product.');
+      }
+    }
+  };
 
-  const handleSubmit = (values) => {
-    console.log('Form submitted with values:', values)
-  }
+  useEffect(() => {
+    console.log('Product ID from URL or state:', idbook); // Log the id to verify
+    fetchCategories();
+    fetchProduct(idbook);
+  }, [idbook]);
+
+  const handleSubmit = async (values) => {
+    try {
+      const token = localStorage.getItem('token');
+      await axios.put(`${API_HOST}/api/books/${idbook}`, values, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      toast.success('Product updated successfully.');
+      navigate('/theme/product');
+    } catch (error) {
+      console.error('Failed to update product:', error);
+      toast.error('Failed to update product.');
+    }
+  };
 
   const handleBack = () => {
-    navigate('/theme/product')
-    toast.success('Back to ProductList')
+    navigate('/theme/product');
+    toast.success('Back to ProductList');
+  };
+
+  if (!product) {
+    return <Typography>Loading...</Typography>;
   }
 
   return (
@@ -68,7 +143,7 @@ const EditProductPage = () => {
                 as={TextField}
                 fullWidth
                 name="productName"
-                label="Product Name"
+                label="Book Name"
                 error={touched.productName && !!errors.productName}
                 helperText={touched.productName && errors.productName}
                 sx={{ borderRadius: '20px' }}
@@ -84,8 +159,11 @@ const EditProductPage = () => {
                   error={touched.category && !!errors.category}
                   helperText={touched.category && errors.category}
                 >
-                  <MenuItem value="Category 1">Category 1</MenuItem>
-                  <MenuItem value="Category 2">Category 2</MenuItem>
+                  {categories.map((category) => (
+                    <MenuItem key={category.id} value={category.id}>
+                      {category.name}
+                    </MenuItem>
+                  ))}
                 </Field>
               </FormControl>
             </Box>
@@ -112,6 +190,17 @@ const EditProductPage = () => {
                 helperText={touched.price && errors.price}
               />
             </Box>
+            <Box marginBottom={2}>
+              <Field
+                as={TextField}
+                fullWidth
+                name="discount"
+                label="Discount"
+                type="number"
+                error={touched.discount && !!errors.discount}
+                helperText={touched.discount && errors.discount}
+              />
+            </Box>
             <Button type="submit" variant="contained" color="primary" sx={{ borderRadius: '20px' }}>
               Save
             </Button>
@@ -119,7 +208,7 @@ const EditProductPage = () => {
         )}
       </Formik>
     </Box>
-  )
-}
+  );
+};
 
-export default EditProductPage
+export default EditProductPage;
