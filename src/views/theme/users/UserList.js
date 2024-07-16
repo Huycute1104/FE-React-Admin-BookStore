@@ -22,6 +22,7 @@ import {
   FormControl,
   InputLabel,
   Select,
+  Pagination,
 } from '@mui/material';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import BlockIcon from '@mui/icons-material/Block';
@@ -33,6 +34,9 @@ import { API_HOST } from '../../../api/config';
 
 const UserList = () => {
   const [users, setUsers] = useState([]);
+  const [totalPages, setTotalPages] = useState(1);
+  const [pageIndex, setPageIndex] = useState(1);
+  const [pageSize] = useState(5);
   const [anchorEl, setAnchorEl] = useState(null);
   const [selectedUser, setSelectedUser] = useState(null);
   const [openDialog, setOpenDialog] = useState(false);
@@ -41,23 +45,25 @@ const UserList = () => {
   const [filterValue, setFilterValue] = useState('all');
   const navigate = useNavigate();
 
+  const fetchUsers = async (page) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get(`${API_HOST}/api/users?pageIndex=${page}&pageSize=${pageSize}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      setUsers(response.data.data);
+      setTotalPages(response.data.totalPages);
+    } catch (error) {
+      console.error('Failed to fetch users:', error);
+      toast.error('Failed to fetch users.');
+    }
+  };
+
   useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        const token = localStorage.getItem('token');
-        const response = await axios.get(`${API_HOST}/api/users?pageIndex=1&pageSize=5`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-        setUsers(response.data);
-      } catch (error) {
-        console.error('Failed to fetch users:', error);
-        toast.error('Failed to fetch users.');
-      }
-    };
-    fetchUsers();
-  }, []);
+    fetchUsers(pageIndex);
+  }, [pageIndex]);
 
   const handleMenuClick = (event, user) => {
     setAnchorEl(event.currentTarget);
@@ -165,7 +171,6 @@ const UserList = () => {
               <MenuItem value="banned">Banned</MenuItem>
             </Select>
           </FormControl>
-
         </Box>
       </Box>
       <TableContainer>
@@ -227,14 +232,23 @@ const UserList = () => {
           </TableBody>
         </Table>
       </TableContainer>
-
+      <Pagination
+        count={totalPages}
+        page={pageIndex}
+        onChange={(event, value) => setPageIndex(value)}
+        color="primary"
+        sx={{
+          display: 'flex',
+          justifyContent: 'center',
+          marginTop: '1rem',
+        }}
+      />
+      <ToastContainer />
       <Dialog open={openDialog} onClose={handleCancelAction}>
         <DialogTitle>{dialogType === 'ban' ? 'Ban User' : 'Unban User'}</DialogTitle>
         <DialogContent>
           <DialogContentText>
-            {dialogType === 'ban'
-              ? 'Are you sure you want to ban this user?'
-              : 'Are you sure you want to unban this user?'}
+            Are you sure you want to {dialogType === 'ban' ? 'ban' : 'unban'} user {selectedUser?.email}?
           </DialogContentText>
         </DialogContent>
         <DialogActions>
@@ -242,12 +256,10 @@ const UserList = () => {
             Cancel
           </Button>
           <Button onClick={handleConfirmAction} color="primary" autoFocus>
-            {dialogType === 'ban' ? 'Ban' : 'Unban'}
+            Confirm
           </Button>
         </DialogActions>
       </Dialog>
-
-      <ToastContainer />
     </Box>
   );
 };
