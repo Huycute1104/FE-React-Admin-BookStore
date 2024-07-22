@@ -163,7 +163,7 @@ const ProductList = () => {
               <TableCell>ID</TableCell>
               <TableCell>Name</TableCell>
               <TableCell>Images</TableCell>
-              <TableCell>Author</TableCell>
+              <TableCell>Description</TableCell>
               <TableCell>Price</TableCell>
               <TableCell>UnitsInStock</TableCell>
               <TableCell>Discount</TableCell>
