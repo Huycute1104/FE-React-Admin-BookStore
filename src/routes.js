@@ -5,6 +5,7 @@ const Category = React.lazy(() => import('./views/theme/category/CategoryList'))
 const EditCategory = React.lazy(() => import('./views/theme/category/EditCategoryPage'))
 const CreateCategoryPage = React.lazy(() => import('./views/theme/category/CreateCategoryPage'))
 const ProductList = React.lazy(() => import('./views/theme/product/ProductList'))
+const OrderList = React.lazy(() => import('./views/theme/order/OrderList'))
 const EditProduct = React.lazy(() => import('./views/theme/product/EditProductPage'))
 const CreateProductPage = React.lazy(() => import('./views/theme/product/CreateProductPage'))
 const UserList = React.lazy(() => import('./views/theme/users/UserList'))
@@ -66,6 +67,7 @@ const routes = [
   { path: '/theme/category/edit/:id', name: 'EditCategory', element: EditCategory },
   { path: '/theme/category/create', name: 'CreateCategory', element: CreateCategoryPage },
   { path: '/theme/product', name: 'Product', element: ProductList },
+  { path: '/theme/order', name: 'Order', element: OrderList },
   { path: '/theme/product/edit/:id', name: 'EditProduct', element: EditProduct },
   { path: '/theme/product/create', name: 'Create Book ', element: CreateProductPage },
   { path: '/theme/user', name: 'User', element: UserList },
