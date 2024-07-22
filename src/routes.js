@@ -67,7 +67,7 @@ const routes = [
   { path: '/theme/category/create', name: 'CreateCategory', element: CreateCategoryPage },
   { path: '/theme/product', name: 'Product', element: ProductList },
   { path: '/theme/product/edit/:id', name: 'EditProduct', element: EditProduct },
-  { path: '/theme/create-product', name: 'Create Product Page', element: CreateProductPage },
+  { path: '/theme/product/create', name: 'Create Book ', element: CreateProductPage },
   { path: '/theme/user', name: 'User', element: UserList },
   { path: '/theme/user/edit/:id', name: 'EditUser', element: EditUser },
   { path: '/theme/user/create', name: 'CreateUser', element: CreateUser },
