@@ -32,7 +32,7 @@ const validationSchema = Yup.object({
     .moreThan(0, 'Price must be greater than 0')
     .required('Price is required')
     .typeError('Price must be a number'),
-    discount: Yup.number()
+  discount: Yup.number()
     .min(0, 'Discount cannot be negative')
     .required('Discount is required')
     .typeError('Discount must be a number'),
@@ -110,7 +110,7 @@ const EditProductPage = () => {
     try {
       const token = localStorage.getItem('token');
       
-      // Cập nhật thông tin sản phẩm
+      // Update product information
       const productData = {
         bookName: values.productName,
         description: values.description,
@@ -127,7 +127,34 @@ const EditProductPage = () => {
         },
       });
 
-      toast.success('Product updated successfully.');
+      // Upload new images
+      if (newImages.length > 0) {
+        const formData = new FormData();
+        formData.append('BookId', idbook);
+        newImages.forEach(file => {
+          formData.append('Images', file);
+        });
+
+        try {
+          await axios.post(`${API_HOST}/api/images`, formData, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'multipart/form-data',
+            },
+          });
+
+          // Refresh product details to include new images
+          fetchProduct(idbook);
+          setNewImages([]);  // Clear the new images after upload
+          toast.success('Product updated and images uploaded successfully.');
+        } catch (uploadError) {
+          console.error('Failed to upload images:', uploadError);
+          toast.error('Failed to upload images.');
+        }
+      } else {
+        toast.success('Product updated successfully.');
+      }
+
       navigate('/theme/product');
     } catch (error) {
       console.error('Failed to update product:', error);
@@ -137,19 +164,23 @@ const EditProductPage = () => {
 
   const handleBack = () => {
     navigate('/theme/product');
-    toast.success('Back to ProductList');
   };
 
   const handleDeleteImage = async (imageId) => {
     try {
       const token = localStorage.getItem('token');
-      await axios.delete(`${API_HOST}/api/books/${idbook}/images/${imageId}`, {
+      const response = await axios.delete(`${API_HOST}/api/images/${imageId}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
-      toast.success('Image deleted successfully.');
-      fetchProduct(idbook);
+
+      if (response.status === 200) {
+        toast.success('Image deleted successfully.');
+        fetchProduct(idbook);
+      } else {
+        throw new Error('Failed to delete image');
+      }
     } catch (error) {
       console.error('Failed to delete image:', error);
       toast.error('Failed to delete image.');
@@ -260,36 +291,29 @@ const EditProductPage = () => {
                     <img
                       src={image.url}
                       alt={`Image ${image.imageId}`}
-                      style={{ width: '150px', height: '150px', objectFit: 'cover', borderRadius: '8px' }}
+                      style={{ width: '100px', height: '100px', objectFit: 'cover' }}
                     />
                     <IconButton
                       onClick={() => handleDeleteImage(image.imageId)}
-                      sx={{ position: 'absolute', top: 0, right: 0 }}
-                      color="error"
+                      sx={{
+                        position: 'absolute',
+                        top: 0,
+                        right: 0,
+                        backgroundColor: 'white',
+                      }}
                     >
                       <DeleteIcon />
                     </IconButton>
                   </Box>
                 ))}
-                {newImages.map((file, index) => (
-                  <Box key={index} position="relative">
-                    <img
-                      src={URL.createObjectURL(file)}
-                      alt={`New Image ${index}`}
-                      style={{ width: '150px', height: '150px', objectFit: 'cover', borderRadius: '8px' }}
-                    />
-                  </Box>
-                ))}
               </Box>
-            </Box>
-            <Box marginBottom={2}>
               <Button
-                variant="contained"
+                variant="outlined"
                 component="label"
                 startIcon={<AddPhotoAlternateIcon />}
-                sx={{ borderRadius: '12px' }}
+                sx={{ marginTop: 2 }}
               >
-                Upload Images
+                Upload New Images
                 <input
                   type="file"
                   multiple
@@ -298,8 +322,8 @@ const EditProductPage = () => {
                 />
               </Button>
             </Box>
-            <Box>
-              <Button variant="contained" type="submit" sx={{ borderRadius: '12px' }}>
+            <Box marginTop={2}>
+              <Button type="submit" variant="contained" sx={{ borderRadius: '12px' }}>
                 Save Changes
               </Button>
             </Box>
