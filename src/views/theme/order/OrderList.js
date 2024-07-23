@@ -261,7 +261,7 @@ const OrderList = () => {
                 <TableCell>{order.orderId}</TableCell>
                 <TableCell>{order.customerName}</TableCell>
                 <TableCell>{order.orderDate}</TableCell>
-                <TableCell>{order.totalAmount}</TableCell>
+                <TableCell>{order.total}</TableCell>
                 <TableCell>{order.orderStatus}</TableCell>
                 <TableCell>
                   <IconButton onClick={(e) => handleMenuClick(e, order)}>
