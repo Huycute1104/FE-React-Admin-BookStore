@@ -59,7 +59,11 @@ const OrderDetailDialog = ({ open, onClose, order }) => {
                       <TableCell align="right">{detail.quantity}</TableCell>
                       <TableCell align="right">{detail.discount}</TableCell>
                       <TableCell align="right">
-                        <img src={detail.book.images[0].url} alt={detail.book.bookName} width="100" />
+                      <img
+                          src={detail.book.images[0].url}
+                          alt={detail.book.bookName}
+                          width="100"
+                        />
                       </TableCell>
                     </TableRow>
                   ))}
