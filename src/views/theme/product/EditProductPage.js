@@ -9,6 +9,7 @@ import {
   InputLabel,
   Select,
   MenuItem,
+  IconButton,
 } from '@mui/material';
 import { Formik, Form, Field } from 'formik';
 import * as Yup from 'yup';
@@ -16,11 +17,17 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import { API_HOST } from '../../../api/config';
+import DeleteIcon from '@mui/icons-material/Delete';
+import AddPhotoAlternateIcon from '@mui/icons-material/AddPhotoAlternate';
 
 const validationSchema = Yup.object({
   productName: Yup.string().required('Product Name is required'),
   description: Yup.string().required('Description is required'),
   category: Yup.string().required('Category is required'),
+  unitsInStock: Yup.number()
+    .moreThan(0, 'Units in Stock must be greater than 0')
+    .required('Units in Stock is required')
+    .typeError('Units in Stock must be a number'),
   price: Yup.number()
     .moreThan(0, 'Price must be greater than 0')
     .required('Price is required')
@@ -32,25 +39,25 @@ const validationSchema = Yup.object({
 });
 
 const EditProductPage = () => {
-  const { id } = useParams(); // Ensure this is correctly getting the product ID from the URL
+  const { id } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
   const [categories, setCategories] = useState([]);
   const [product, setProduct] = useState(null);
-  const idbook = location.state?.idbook || id; // Get idbook from state or fallback to id
+  const [newImages, setNewImages] = useState([]);
+  const idbook = location.state?.idbook || id;
+  const [pageIndex] = useState(1);
+  const [pageSize] = useState(1000);
 
   const fetchCategories = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get(`${API_HOST}/api/categories`, {
+      const response = await axios.get(`${API_HOST}/api/categories?pageIndex=${pageIndex}&pageSize=${pageSize}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
 
-      console.log('Categories response:', response.data); // Log the response for debugging
-
-      // Ensure the response contains a categories array
       if (response.data && Array.isArray(response.data.categories)) {
         setCategories(response.data.categories);
       } else {
@@ -75,14 +82,14 @@ const EditProductPage = () => {
         },
       });
       const productData = response.data;
-      console.log('Product data:', productData); // Log the product data for debugging
-      // Set initial values for Formik
       setProduct({
         productName: productData.name,
         description: productData.description,
         category: productData.category.categoryId,
+        unitsInStock: productData.unitsInStock,
         price: productData.unitPrice,
         discount: productData.discount,
+        images: productData.images || [],
       });
     } catch (error) {
       console.error('Failed to fetch product:', error);
@@ -95,7 +102,6 @@ const EditProductPage = () => {
   };
 
   useEffect(() => {
-    console.log('Product ID from URL or state:', idbook); // Log the id to verify
     fetchCategories();
     fetchProduct(idbook);
   }, [idbook]);
@@ -103,9 +109,23 @@ const EditProductPage = () => {
   const handleSubmit = async (values) => {
     try {
       const token = localStorage.getItem('token');
-      await axios.put(`${API_HOST}/api/books/${idbook}`, values, {
+      const formData = new FormData();
+      formData.append('Name', values.productName);
+      formData.append('Description', values.description);
+      formData.append('UnitPrice', values.price);
+      formData.append('UnitsInStock', values.unitsInStock);
+      formData.append('Discount', values.discount);
+      formData.append('CategoryId', values.category);
+
+      // Append new images to FormData
+      newImages.forEach((file) => {
+        formData.append('Images', file);
+      });
+
+      await axios.put(`${API_HOST}/api/books/${idbook}`, formData, {
         headers: {
           Authorization: `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data',
         },
       });
       toast.success('Product updated successfully.');
@@ -119,6 +139,27 @@ const EditProductPage = () => {
   const handleBack = () => {
     navigate('/theme/product');
     toast.success('Back to ProductList');
+  };
+
+  const handleDeleteImage = async (imageId) => {
+    try {
+      const token = localStorage.getItem('token');
+      await axios.delete(`${API_HOST}/api/books/${idbook}/images/${imageId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      toast.success('Image deleted successfully.');
+      fetchProduct(idbook);
+    } catch (error) {
+      console.error('Failed to delete image:', error);
+      toast.error('Failed to delete image.');
+    }
+  };
+
+  const handleImageChange = (event) => {
+    const files = Array.from(event.target.files);
+    setNewImages([...newImages, ...files]);
   };
 
   if (!product) {
@@ -143,7 +184,7 @@ const EditProductPage = () => {
                 as={TextField}
                 fullWidth
                 name="productName"
-                label="Book Name"
+                label="Product Name"
                 error={touched.productName && !!errors.productName}
                 helperText={touched.productName && errors.productName}
                 sx={{ borderRadius: '20px' }}
@@ -183,6 +224,17 @@ const EditProductPage = () => {
               <Field
                 as={TextField}
                 fullWidth
+                name="unitsInStock"
+                label="Units In Stock"
+                type="number"
+                error={touched.unitsInStock && !!errors.unitsInStock}
+                helperText={touched.unitsInStock && errors.unitsInStock}
+              />
+            </Box>
+            <Box marginBottom={2}>
+              <Field
+                as={TextField}
+                fullWidth
                 name="price"
                 label="Price"
                 type="number"
@@ -200,6 +252,51 @@ const EditProductPage = () => {
                 error={touched.discount && !!errors.discount}
                 helperText={touched.discount && errors.discount}
               />
+            </Box>
+            <Box marginBottom={2}>
+              <Typography variant="h6">Images</Typography>
+              <Box display="flex" flexWrap="wrap" gap={2}>
+                {product.images.map((image) => (
+                  <Box key={image.imageId} position="relative">
+                    <img
+                      src={image.url}
+                      alt={`Image ${image.imageId}`}
+                      style={{ width: '150px', height: '150px', objectFit: 'cover', borderRadius: '8px' }}
+                    />
+                    <IconButton
+                      onClick={() => handleDeleteImage(image.imageId)}
+                      sx={{ position: 'absolute', top: 0, right: 0 }}
+                      color="error"
+                    >
+                      <DeleteIcon />
+                    </IconButton>
+                  </Box>
+                ))}
+                {newImages.map((file, index) => (
+                  <Box key={index} position="relative">
+                    <img
+                      src={URL.createObjectURL(file)}
+                      alt={`New Image ${index}`}
+                      style={{ width: '150px', height: '150px', objectFit: 'cover', borderRadius: '8px' }}
+                    />
+                  </Box>
+                ))}
+              </Box>
+              <Button
+                variant="contained"
+                component="label"
+                startIcon={<AddPhotoAlternateIcon />}
+                sx={{ marginTop: 2, borderRadius: '12px' }}
+              >
+                Add Images
+                <input
+                  type="file"
+                  multiple
+                  accept="image/*"
+                  hidden
+                  onChange={handleImageChange}
+                />
+              </Button>
             </Box>
             <Button type="submit" variant="contained" color="primary" sx={{ borderRadius: '20px' }}>
               Save

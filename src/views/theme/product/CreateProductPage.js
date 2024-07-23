@@ -62,14 +62,15 @@ const CreateProductPage = () => {
   const [selectedImages, setSelectedImages] = useState([]);
   const [categories, setCategories] = useState([]);
   const [uploadProgress, setUploadProgress] = useState(0);
-
+  const [pageIndex, setPageIndex] = useState(1);
+  const [pageSize] = useState(1000);
   const fetchCategories = async () => {
     try {
       const token = localStorage.getItem('token');
       if (!token) {
         throw new Error('No token found in localStorage');
       }
-      const response = await axios.get(`${API_HOST}/api/categories`, {
+      const response = await axios.get(`${API_HOST}/api/categories?pageIndex=${pageIndex}&pageSize=${pageSize}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },

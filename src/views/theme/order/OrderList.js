@@ -11,42 +11,90 @@ import {
   IconButton,
   Menu,
   Pagination,
+  MenuItem,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogContentText,
   DialogActions,
   Button,
-  MenuItem,
-  Typography,
+  TextField,
+  Select,
+  MenuItem as SelectMenuItem,
+  InputLabel,
+  FormControl
 } from '@mui/material';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import InfoIcon from '@mui/icons-material/Info';
-import DeleteIcon from '@mui/icons-material/Delete';
+import ChangeCircleIcon from '@mui/icons-material/ChangeCircle'; // Changed to ChangeCircleIcon
 import { toast, ToastContainer } from 'react-toastify';
+import axios from 'axios';
+import { API_HOST } from '../../../api/config';
+import OrderDetailDialog from './OrderDetailDialog';
 
 const OrderList = () => {
   const [orders, setOrders] = useState([]);
   const [anchorEl, setAnchorEl] = useState(null);
   const [selectedOrder, setSelectedOrder] = useState(null);
-  const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
-  const [openDetailDialog, setOpenDetailDialog] = useState(false);
+  const [openStatusDialog, setOpenStatusDialog] = useState(false); // Changed to openStatusDialog
+  const [newStatus, setNewStatus] = useState(''); // State for the new status
   const [pageIndex, setPageIndex] = useState(1);
   const [pageSize] = useState(5);
   const [totalPages, setTotalPages] = useState(1);
+  const [openDetailDialog, setOpenDetailDialog] = useState(false);
+  const [fetchData, setFetchData] = useState(false);
+
+  // State for search parameters
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [minPrice, setMinPrice] = useState('');
+  const [maxPrice, setMaxPrice] = useState('');
+  const [customerPhone, setCustomerPhone] = useState('');
+  const [customerName, setCustomerName] = useState('');
+  const [userId, setUserId] = useState('');
+  const [orderStatus, setOrderStatus] = useState('');
+
+  const token = localStorage.getItem('token');
+
+  const fetchOrders = async () => {
+    try {
+      const response = await axios.get(`${API_HOST}/api/orders`, {
+        params: {
+          pageIndex,
+          pageSize,
+          StartDate: startDate || null,
+          EndDate: endDate || null,
+          MinPrice: minPrice || null,
+          MaxPrice: maxPrice || null,
+          CustomerPhone: customerPhone || null,
+          CustomerName: customerName || null,
+          UserId: userId || null,
+          OrderStatus: orderStatus || null
+        },
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+      console.log('API Response:', response.data); 
+      const { totalPages, items } = response.data;
+      setOrders(items);
+      setTotalPages(totalPages);
+    } catch (error) {
+      console.error('Failed to fetch orders:', error);
+      toast.error('Failed to fetch orders.');
+    }
+  };
 
   useEffect(() => {
-    // Mock data for viewing
-    const mockOrders = [
-      { id: 1, customerName: 'John Doe', orderDate: '2023-07-01', totalAmount: 100, status: 'Completed' },
-      { id: 2, customerName: 'Jane Smith', orderDate: '2023-07-02', totalAmount: 200, status: 'Pending' },
-      { id: 3, customerName: 'Alice Johnson', orderDate: '2023-07-03', totalAmount: 150, status: 'Shipped' },
-      { id: 4, customerName: 'Bob Brown', orderDate: '2023-07-04', totalAmount: 250, status: 'Processing' },
-      { id: 5, customerName: 'Charlie Green', orderDate: '2023-07-05', totalAmount: 300, status: 'Delivered' },
-    ];
-    setOrders(mockOrders);
-    setTotalPages(1); // Set total pages to 1 for mock data
-  }, []);
+    if (fetchData) {
+      fetchOrders();
+      setFetchData(false);
+    }
+  }, [fetchData, pageIndex]);
+
+  const handleSearch = () => {
+    setFetchData(true); 
+  };
 
   const handleMenuClick = (event, order) => {
     setAnchorEl(event.currentTarget);
@@ -62,22 +110,48 @@ const OrderList = () => {
     setOpenDetailDialog(true);
   };
 
-  const handleDeleteClick = () => {
+  const handleChangeStatusClick = () => {
     handleMenuClose();
-    setOpenDeleteDialog(true);
+    setOpenStatusDialog(true);
   };
 
-  const handleDeleteConfirm = () => {
-    const newOrders = orders.filter(order => order.id !== selectedOrder.id);
-    setOrders(newOrders);
-    setOpenDeleteDialog(false);
-    toast.success('Order deleted successfully.');
-    setSelectedOrder(null);
+  const handleChangeStatusConfirm = async () => {
+    try {
+      if (!selectedOrder || !newStatus) {
+        console.error('No order selected or status not selected.');
+        setOpenStatusDialog(false);
+        return;
+      }
+
+      await axios.put(`${API_HOST}/api/orders/${selectedOrder.orderId}/status`, null, {
+        params: {
+          newStatus
+        },
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+
+
+      const updatedOrders = orders.map(order =>
+        order.orderId === selectedOrder.orderId ? { ...order, orderStatus: newStatus } : order
+      );
+      setOrders(updatedOrders);
+      setOpenStatusDialog(false);
+      toast.success('Order status updated successfully.');
+      setSelectedOrder(null);
+    } catch (error) {
+      console.error('Failed to update order status:', error);
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to update order status.';
+      toast.error(`${errorMessage}`);
+      setOpenStatusDialog(false);
+    }
   };
 
-  const handleDeleteCancel = () => {
-    setOpenDeleteDialog(false);
+  const handleChangeStatusCancel = () => {
+    setOpenStatusDialog(false);
     setSelectedOrder(null);
+    setNewStatus('');
   };
 
   const handleDetailClose = () => {
@@ -91,6 +165,84 @@ const OrderList = () => {
 
   return (
     <Box>
+      <Box marginBottom={2} display="flex" flexDirection="column" gap={2}>
+        <Box display="flex" flexWrap="wrap" gap={2}>
+          <TextField
+            label="Start Date"
+            type="date"
+            InputLabelProps={{ shrink: true }}
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+            margin="normal"
+            sx={{ flexBasis: 'calc(50% - 16px)' }}
+          />
+          <TextField
+            label="End Date"
+            type="date"
+            InputLabelProps={{ shrink: true }}
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+            margin="normal"
+            sx={{ flexBasis: 'calc(50% - 16px)' }}
+          />
+          <TextField
+            label="Min Price"
+            type="number"
+            value={minPrice}
+            onChange={(e) => setMinPrice(e.target.value)}
+            margin="normal"
+            sx={{ flexBasis: 'calc(50% - 16px)' }}
+          />
+          <TextField
+            label="Max Price"
+            type="number"
+            value={maxPrice}
+            onChange={(e) => setMaxPrice(e.target.value)}
+            margin="normal"
+            sx={{ flexBasis: 'calc(50% - 16px)' }}
+          />
+          <TextField
+            label="Customer Phone"
+            value={customerPhone}
+            onChange={(e) => setCustomerPhone(e.target.value)}
+            margin="normal"
+            sx={{ flexBasis: 'calc(50% - 16px)' }}
+          />
+          <TextField
+            label="Customer Name"
+            value={customerName}
+            onChange={(e) => setCustomerName(e.target.value)}
+            margin="normal"
+            sx={{ flexBasis: 'calc(50% - 16px)' }}
+          />
+          <TextField
+            label="User ID"
+            type="number"
+            value={userId}
+            onChange={(e) => setUserId(e.target.value)}
+            margin="normal"
+            sx={{ flexBasis: 'calc(50% - 16px)' }}
+          />
+          <FormControl fullWidth margin="normal" sx={{ flexBasis: 'calc(50% - 16px)' }}>
+            <InputLabel>Order Status</InputLabel>
+            <Select
+              value={orderStatus}
+              onChange={(e) => setOrderStatus(e.target.value)}
+              label="Order Status"
+            >
+              <SelectMenuItem value="">None</SelectMenuItem>
+              <SelectMenuItem value="Pending">Pending</SelectMenuItem>
+              <SelectMenuItem value="Processing">Processing</SelectMenuItem>
+              <SelectMenuItem value="Shipped">Shipped</SelectMenuItem>
+              <SelectMenuItem value="Delivered">Delivered</SelectMenuItem>
+              <SelectMenuItem value="Cancelled">Cancelled</SelectMenuItem>
+            </Select>
+          </FormControl>
+        </Box>
+        <Button variant="contained" color="primary" onClick={handleSearch}>
+          Search
+        </Button>
+      </Box>
       <TableContainer>
         <Table>
           <TableHead>
@@ -105,81 +257,73 @@ const OrderList = () => {
           </TableHead>
           <TableBody>
             {orders.map((order) => (
-              <TableRow key={order.id}>
-                <TableCell>{order.id}</TableCell>
+              <TableRow key={order.orderId}>
+                <TableCell>{order.orderId}</TableCell>
                 <TableCell>{order.customerName}</TableCell>
                 <TableCell>{order.orderDate}</TableCell>
                 <TableCell>{order.totalAmount}</TableCell>
-                <TableCell>{order.status}</TableCell>
+                <TableCell>{order.orderStatus}</TableCell>
                 <TableCell>
-                  <IconButton
-                    aria-controls="simple-menu"
-                    aria-haspopup="true"
-                    onClick={(event) => handleMenuClick(event, order)}
-                  >
+                  <IconButton onClick={(e) => handleMenuClick(e, order)}>
                     <MoreVertIcon />
                   </IconButton>
-                  <Menu
-                    id="simple-menu"
-                    anchorEl={anchorEl}
-                    keepMounted
-                    open={Boolean(anchorEl)}
-                    onClose={handleMenuClose}
-                  >
-                    <MenuItem onClick={handleViewClick}>
-                      <InfoIcon fontSize="small" sx={{ marginRight: 1 }} />
-                      View Order Detail
-                    </MenuItem>
-                    <MenuItem onClick={handleDeleteClick}>
-                      <DeleteIcon fontSize="small" sx={{ marginRight: 1 }} />
-                      Delete
-                    </MenuItem>
-                  </Menu>
                 </TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
       </TableContainer>
-      <Box display="flex" justifyContent="center" marginTop={2}>
-        <Pagination count={totalPages} page={pageIndex} onChange={handlePageChange} color="primary" />
-      </Box>
-      <Dialog open={openDeleteDialog} onClose={handleDeleteCancel}>
-        <DialogTitle sx={{ backgroundColor: '#f44336', color: '#fff' }}>
-          Delete Order
-        </DialogTitle>
+      <Pagination
+        count={totalPages}
+        page={pageIndex}
+        onChange={handlePageChange}
+        color="primary"
+        sx={{ marginTop: 2, display: 'flex', justifyContent: 'center' }}
+      />
+      <ToastContainer />
+      <Menu
+        anchorEl={anchorEl}
+        open={Boolean(anchorEl)}
+        onClose={handleMenuClose}
+      >
+        <MenuItem onClick={handleViewClick}>
+          <InfoIcon /> View
+        </MenuItem>
+        <MenuItem onClick={handleChangeStatusClick}>
+          <ChangeCircleIcon /> Change Status
+        </MenuItem>
+      </Menu>
+      <Dialog open={openStatusDialog} onClose={handleChangeStatusCancel}>
+        <DialogTitle>Change Order Status</DialogTitle>
         <DialogContent>
-          <DialogContentText>Are you sure you want to delete this order?</DialogContentText>
+          <DialogContentText>
+            Select the new status for the order.
+          </DialogContentText>
+          <FormControl fullWidth margin="normal">
+            <InputLabel>New Status</InputLabel>
+            <Select
+              value={newStatus}
+              onChange={(e) => setNewStatus(e.target.value)}
+              label="New Status"
+            >
+              <SelectMenuItem value="Pending">Pending</SelectMenuItem>
+              <SelectMenuItem value="Processing">Processing</SelectMenuItem>
+              <SelectMenuItem value="Shipped">Shipped</SelectMenuItem>
+              <SelectMenuItem value="Delivered">Delivered</SelectMenuItem>
+              <SelectMenuItem value="Cancelled">Cancelled</SelectMenuItem>
+            </Select>
+          </FormControl>
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleDeleteCancel} color="primary">
-            Cancel
-          </Button>
-          <Button onClick={handleDeleteConfirm} color="error" autoFocus>
-            Delete
-          </Button>
+          <Button onClick={handleChangeStatusCancel}>Cancel</Button>
+          <Button onClick={handleChangeStatusConfirm}>Confirm</Button>
         </DialogActions>
       </Dialog>
-      <Dialog open={openDetailDialog} onClose={handleDetailClose}>
-        <DialogTitle>Order Detail</DialogTitle>
-        <DialogContent>
-          {selectedOrder && (
-            <>
-              <Typography>ID: {selectedOrder.id}</Typography>
-              <Typography>Customer Name: {selectedOrder.customerName}</Typography>
-              <Typography>Order Date: {selectedOrder.orderDate}</Typography>
-              <Typography>Total Amount: {selectedOrder.totalAmount}</Typography>
-              <Typography>Status: {selectedOrder.status}</Typography>
-            </>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleDetailClose} color="primary">
-            Close
-          </Button>
-        </DialogActions>
-      </Dialog>
-      <ToastContainer position="top-right" autoClose={3000} />
+      <OrderDetailDialog
+        open={openDetailDialog}
+        order={selectedOrder}
+        onClose={handleDetailClose}
+      />
     </Box>
   );
 };
