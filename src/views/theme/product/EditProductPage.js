@@ -32,8 +32,8 @@ const validationSchema = Yup.object({
     .moreThan(0, 'Price must be greater than 0')
     .required('Price is required')
     .typeError('Price must be a number'),
-  discount: Yup.number()
-    .moreThan(0, 'Discount must be greater than 0')
+    discount: Yup.number()
+    .min(0, 'Discount cannot be negative')
     .required('Discount is required')
     .typeError('Discount must be a number'),
 });
@@ -109,25 +109,24 @@ const EditProductPage = () => {
   const handleSubmit = async (values) => {
     try {
       const token = localStorage.getItem('token');
-      const formData = new FormData();
-      formData.append('Name', values.productName);
-      formData.append('Description', values.description);
-      formData.append('UnitPrice', values.price);
-      formData.append('UnitsInStock', values.unitsInStock);
-      formData.append('Discount', values.discount);
-      formData.append('CategoryId', values.category);
+      
+      // Cập nhật thông tin sản phẩm
+      const productData = {
+        bookName: values.productName,
+        description: values.description,
+        unitPrice: values.price,
+        unitsInStock: values.unitsInStock,
+        discount: values.discount,
+        categoryId: values.category,
+      };
 
-      // Append new images to FormData
-      newImages.forEach((file) => {
-        formData.append('Images', file);
-      });
-
-      await axios.put(`${API_HOST}/api/books/${idbook}`, formData, {
+      await axios.put(`${API_HOST}/api/books/${idbook}`, productData, {
         headers: {
           Authorization: `Bearer ${token}`,
-          'Content-Type': 'multipart/form-data',
+          'Content-Type': 'application/json',
         },
       });
+
       toast.success('Product updated successfully.');
       navigate('/theme/product');
     } catch (error) {
@@ -282,25 +281,28 @@ const EditProductPage = () => {
                   </Box>
                 ))}
               </Box>
+            </Box>
+            <Box marginBottom={2}>
               <Button
                 variant="contained"
                 component="label"
                 startIcon={<AddPhotoAlternateIcon />}
-                sx={{ marginTop: 2, borderRadius: '12px' }}
+                sx={{ borderRadius: '12px' }}
               >
-                Add Images
+                Upload Images
                 <input
                   type="file"
                   multiple
-                  accept="image/*"
                   hidden
                   onChange={handleImageChange}
                 />
               </Button>
             </Box>
-            <Button type="submit" variant="contained" color="primary" sx={{ borderRadius: '20px' }}>
-              Save
-            </Button>
+            <Box>
+              <Button variant="contained" type="submit" sx={{ borderRadius: '12px' }}>
+                Save Changes
+              </Button>
+            </Box>
           </Form>
         )}
       </Formik>
