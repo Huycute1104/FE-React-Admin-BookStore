@@ -34,6 +34,7 @@ const validationSchema = Yup.object({
     .typeError('Price must be a number'),
   discount: Yup.number()
     .min(0, 'Discount cannot be negative')
+    .max(100, 'Discount cannot be more than 100')
     .required('Discount is required')
     .typeError('Discount must be a number'),
 });
