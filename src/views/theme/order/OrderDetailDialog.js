@@ -21,7 +21,7 @@ import {
 
 const OrderDetailDialog = ({ open, onClose, order }) => {
   return (
-    <Dialog open={open} onClose={onClose}>
+    <Dialog open={open} onClose={onClose} fullWidth maxWidth="md">
       <DialogTitle>Order Detail</DialogTitle>
       <DialogContent>
         {order && (
@@ -54,16 +54,20 @@ const OrderDetailDialog = ({ open, onClose, order }) => {
                 <TableBody>
                   {order.orderDetails.map((detail) => (
                     <TableRow key={detail.bookId}>
-                      <TableCell>{detail.book.bookName}</TableCell>
+                      <TableCell>{detail.book?.bookName || 'N/A'}</TableCell>
                       <TableCell align="right">{detail.unitPrice}</TableCell>
                       <TableCell align="right">{detail.quantity}</TableCell>
                       <TableCell align="right">{detail.discount}</TableCell>
                       <TableCell align="right">
-                      <img
-                          src={detail.book.images[0].url}
-                          alt={detail.book.bookName}
-                          width="100"
-                        />
+                        {detail.book && detail.book.images && detail.book.images.length > 0 ? (
+                          <img
+                            src={detail.book.images[1].url}
+                            alt={detail.book.bookName}
+                            width="100"
+                          />
+                        ) : (
+                          <Typography>No image available</Typography>
+                        )}
                       </TableCell>
                     </TableRow>
                   ))}
